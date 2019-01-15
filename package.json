@@ -15,8 +15,8 @@
     "url": "https://github.com/brikcss/bundles/issues"
   },
   "files": ["lib", "bin"],
-  "main": "./lib/bundles.min.js",
-  "bin": "./bin/bundles.min.js",
+  "main": "./lib/bundles.js",
+  "bin": "./bin/bundles-cli.js",
   "publishConfig": {
     "tag": "dev",
     "access": "public"
