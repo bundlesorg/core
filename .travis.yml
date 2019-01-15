@@ -1,0 +1,40 @@
+#! .travis.yml | @author brikcss <https://github.com/brikcss> | @reference https://docs.travis-ci.com/user/customizing-the-build/ #
+
+language: node_js
+node_js: '8'
+
+cache:
+  bundler: true
+  # directories:
+  #   - node_modules
+
+notifications:
+  email:
+    on_failure: always
+
+env: NODE_ENV=test
+
+# Publish to NPM only.
+before_script: npm prune -d
+script: npm test -d
+deploy:
+  provider: npm
+  email: thezimmee@gmail.com
+  api_key: $NPM_TOKEN
+  skip_cleanup: true
+# Semantic release to NPM and GitHub.
+# deploy:
+#   provider: script
+#   skip_cleanup: true
+#   script:
+#     - npx semantic-release
+
+# Publish to NPM only.
+branches:
+  only:
+    - master
+    - /^greenkeeper/.*$/
+# Semantic release to NPM and GitHub.
+# branches:
+#   except:
+#     - /^v\d+\.\d+\.\d+$/

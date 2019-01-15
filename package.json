@@ -1,0 +1,44 @@
+{
+  "name": "@bundles/core",
+  "version": "0.0.1",
+  "description": "Bundles is a file bundler -- similar to [WebPack](https://webpack.js.org/), [RollupJS](http://rollupjs.org), [Parcel](https://parceljs.org/), [PostCSS](https://postcss.org/), etc. -- **but for anything**. The main difference between Bundles and other bundlers is that while other bundlers compile to a specific type of output (like JavaScript, CSS, etc.), Bundles can compile to anything.",
+  "keywords": ["brikcss", "bundles", "bundler", "build", "compiler", "transpiler", "task runner"],
+  "license": "MIT",
+  "author": "Brikcss <https://github.com/brikcss>",
+  "contributors": ["The Zimmee <thezimmee@gmail.com>"],
+  "homepage": "https://github.com/brikcss/bundles",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/brikcss/bundles.git"
+  },
+  "bugs": {
+    "url": "https://github.com/brikcss/bundles/issues"
+  },
+  "files": ["lib", "bin"],
+  "main": "./lib/bundles.min.js",
+  "bin": "./bin/bundles.min.js",
+  "publishConfig": {
+    "tag": "dev",
+    "access": "public"
+  },
+  "scripts": {
+    "start": "npm run watch",
+    "test": "standard *.js && jest --coverage && cat coverage/lcov.info | coveralls && cat coverage/lcov.info | codacy-coverage",
+    "unit": "jest",
+    "watch": "jest --watchAll"
+  },
+  "devDependencies": {
+    "@brikcss/git-hooks": "^2.1.0",
+    "codacy-coverage": "^3.3.0",
+    "coveralls": "^3.0.2",
+    "jest": "^23.6.0",
+    "semantic-release": "^15.12.0"
+  },
+  "dependencies": {
+    "chokidar": "^2.0.4",
+    "cosmiconfig": "^5.0.7",
+    "fs-extra": "^7.0.1",
+    "globby": "^8.0.1",
+    "gray-matter": "^4.0.1"
+  }
+}
