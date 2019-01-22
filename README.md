@@ -1,7 +1,5 @@
 # Bundles Core
 
-> Bundles is a file bundler -- similar to [WebPack](https://webpack.js.org/), [RollupJS](http://rollupjs.org), [Parcel](https://parceljs.org/), [PostCSS](https://postcss.org/), etc. -- **but for anything**. The main difference between Bundles and other bundlers is that while other bundlers compile to a specific type of output (like JavaScript, CSS, etc.), Bundles can compile to anything. This means Bundles can compile to... well, anything; whether JavaScript, CSS, MarkDown, JSON, or literally _anything_! Bundles takes input, runs it through a series of "bundlers" (i.e., simple plugins), and processes your data however you tell it to.
-
 <!-- Shields. -->
 <p>
     <!-- NPM version. -->
@@ -28,17 +26,13 @@
     <a href="https://greenkeeper.io/"><img src="https://badges.greenkeeper.io/brikcss/bundles-core.svg?style=flat-square" alt="Greenkeeper badge"></a>
 </p>
 
+Bundles is a file bundler, similar to [WebPack](https://webpack.js.org/), [RollupJS](http://rollupjs.org), [Parcel](https://parceljs.org/), [PostCSS](https://postcss.org/), etc., **except that while other bundlers are designed to compile to a specific type of output (like JS, CSS, etc.), Bundles can compile from anything, to anything!** Bundles has no assumptions and places no limitations on the type of input it takes and what it outputs to. It simply takes input, runs it through a series of "bundlers" (i.e., simple JS plugins), and processes your data however you tell it to. Use Bundles to compile literally _anything your heart desires (and can dream up)_!
+
 ## Environment support
 
 | Node | CLI | ES Module | Browser | UMD |
 | :--: | :-: | :-------: | :-----: | :-: |
 |  ✓   |  ✓  |     x     |    x    |  x  |
-
-## Install
-
-```sh
-npm install @bundles/core -D
-```
 
 ## Terminology
 
@@ -53,6 +47,12 @@ To make things easier to understand:
     -   _global config_: Refers to the global `config` Object.
     -   _bundles config_: Refers to `config.bundles`.
     -   _bundle config_: Refers to a specific bundle, i.e., `config.bundles[x]`.
+
+## Install
+
+```sh
+npm install @bundles/core -D
+```
 
 ## Usage
 
@@ -83,7 +83,7 @@ Bundles' API is designed to be as minimal as possible so as to be easy to use, w
     -   **`bundlers`** (_required_) _{String[]|Function[]|Object[]}_ Each bundler processes `input` in a specified way. A bundler can be any of the following (see also [creating a bundler](#creating-a-bundler)):
         -   A Function: `(bundle = {}, bundler = {}) => { // Do something cool. }`.
         -   A Node module: `'my-cool-bundler'` or `'./path/to/bundler'`
-        -   An Object, where the `run` property is a Node module or a Function.
+        -   An Object, where the `run` property is a Node module or a Function. This allows you to attach bundler specific configuration.
     -   **`id`** _{String}_ ID / identifier for this bundle. If this doesn't exist, Bundles will use its index position in `bundles`.
 
 -   **`on`** _{Object}_ Callback functions which hook into the Bundles workflow. Potential hooks include:
@@ -165,7 +165,7 @@ module.exports = (bundle = {}, bundler = {}) => {
         - **`on`** _{Object}_ Callback functions to hook into core functionality.
 
     - **`bundler`** _{Object}_ The bundler configuration. This allows users to provide bundler-specific configuration.
-        <!-- - **`config`** _{Object}_ The global configuration Object. _IMPORTANT: This is provided for access to global user options but should not be modified._ -->
+      <!-- - **`config`** _{Object}_ The global configuration Object. _IMPORTANT: This is provided for access to global user options but should not be modified._ -->
 
 2. Only modify the `bundle` Object. Other parameters are provided as read-only context, and it is strongly encouraged not to modify these Objects.
 
