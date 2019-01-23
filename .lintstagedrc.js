@@ -2,6 +2,7 @@
 
 module.exports = {
   linters: {
+    'lib/bundles.js': ['npx node-minify --compressor uglify-es --input lib/bundles.js --output lib/bundles.min.js', 'git add lib/bundles.min.js'],
     '*.js': ['standard --fix', 'git add'],
     '*.css': ['prettier --parser css --write', 'stylelint', 'git add'],
     '*.json': ['prettier --parser json --write', 'git add'],

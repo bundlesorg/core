@@ -15,7 +15,7 @@
     "url": "https://github.com/brikcss/bundles/issues"
   },
   "files": ["lib", "bin"],
-  "main": "./lib/bundles.js",
+  "main": "./lib/bundles.min.js",
   "bin": "./bin/bundles-cli.js",
   "publishConfig": {
     "tag": "dev",
@@ -29,6 +29,8 @@
   },
   "devDependencies": {
     "@brikcss/git-hooks": "^2.1.0",
+    "@node-minify/cli": "^4.1.0",
+    "@node-minify/uglify-es": "^4.0.5",
     "codacy-coverage": "^3.3.0",
     "coveralls": "^3.0.2",
     "jest": "^23.6.0",
