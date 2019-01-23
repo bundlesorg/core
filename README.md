@@ -98,12 +98,29 @@ Bundles' API is designed to be as minimal as possible so as to be easy to use, w
     -   **`frontMatter`** _{Object}_ Options passed directly to [gray-matter](https://github.com/jonschlinkert/gray-matter).
     -   **`chokidar`** _{Object}_ Options passed directly to [chokidar](https://github.com/paulmillr/chokidar).
 
-## The Result
+## The Bundle Object
+
+It is important to understand the `bundle` Object in order to grasp how Bundles, and bundler plugins, work. Each `bundle` contains the following properties:
+
+-   **`id`** _{String}_ The bundle ID. Defaults to its index position.
+-   **`input`** _{String[]}_ Array of input file paths (Strings) returned by [globby](https://github.com/sindresorhus/globby).
+-   **`output`** _{Object[]}_ Each Object is a file Object with the following properties:
+    -   **`source`** _{Object}_ The source file is read in and this `source` Object is created by [gray-matter](https://www.npmjs.com/package/gray-matter#returned-object), and includes all properties returned by gray matter, along with the following:
+        -   **`path`** _{String}_ Source file path.
+        -   **`content`** _{String}_ Source content (to be modified).
+        -   **`data`** _{String}_ Source front matter data (can be modified).
+    -   **`content`** _{String}_ Output content (to be modified).
+    -   **`data`** _{String}_ Output front matter data (can be modified).
+-   **`bundlers`** _{Object[]}_ Bundlers that process this bundle (see `config.bundlers`).
+-   **`watch`** _{Boolean}_ Whether this bundle is configured to be watched.
+-   **`on`** _{Object}_ Callback functions to hook into core functionality.
+
+## The Result Object
 
 Bundles returns a result Object after running all configured bundlers. The result Object mirrors the `config` Object and, at a minimum, has the following properties:
 
 -   **`success`** _{Boolean}_ Whether all bundles compiled successfully.
--   **`bundles`** _{Object[]}_ Bundles that ran. Each bundle has the same properties as bundles in the config Object, along with the following additions:
+-   **`bundles`** _{Object[]}_ Bundles that ran. Each bundle Object has the following properties:
     -   **`success`** _{Boolean}_ Whether bundle compiled successfully.
     -   **`output`** _{Object[]}_ File(s) to output.
     -   **`watch`** _{Boolean}_ Whether the bundle is being watched.
@@ -151,21 +168,9 @@ module.exports = (bundle = {}, bundler = {}) => {
 
 1. A bundler must return a function which returns the modified `bundle` Object. The function receives, and allows you to use, the following parameters (see examples above):
 
-    - **`bundle`** _{Object}_ The bundle Object. This is the Object you want to modify and return. It has the following properties:
-
-        - **`id`** _{String}_ The bundle's ID provided by user, or its index position.
-        - **`input`** _{String[]}_ The list of input file paths returned by [globby](https://github.com/sindresorhus/globby).
-        - **`output`** _{Object[]}_ Each Object is an input / source file, with the following properties:
-            - **`source`** _{Object}_ The source file is read in and this `source` Object is created by [gray-matter](https://www.npmjs.com/package/gray-matter#returned-object).
-            - **`from`** _{String}_ Source file path.
-            - **`content`** _{String}_ Output content (to be modified).
-            - **`data`** _{String}_ Output front matter data (can be modified).
-        - **`bundlers`** _{Object[]}_ Bundlers that process this bundle (see `config.bundlers`).
-        - **`watch`** _{Boolean}_ Whether this bundle is configured to be watched.
-        - **`on`** _{Object}_ Callback functions to hook into core functionality.
-
+    - **`bundle`** _{Object}_ [The bundle Object](#the-bundle-object).
     - **`bundler`** _{Object}_ The bundler configuration. This allows users to provide bundler-specific configuration.
-      <!-- - **`config`** _{Object}_ The global configuration Object. _IMPORTANT: This is provided for access to global user options but should not be modified._ -->
+          <!-- - **`config`** _{Object}_ The global configuration Object. _IMPORTANT: This is provided for access to global user options but should not be modified._ -->
 
 2. Only modify the `bundle` Object. Other parameters are provided as read-only context, and it is strongly encouraged not to modify these Objects.
 
