@@ -36,17 +36,17 @@ Bundles is a file bundler, similar to [WebPack](https://webpack.js.org/), [Rollu
 
 ## Terminology
 
-To make things easier to understand:
+To be clear, the usage of the following terms are defined as follows:
 
 - _Bundles_ (capitalized): The core package / tool for Bundles.
 - _bundles_: Results compiled by Bundles. More specifically this refers to the `results.bundles` returned by `Bundles`. This may also refer to `config.bundles`, which eventually turns into `results.bundles`.
-- _bundle (noun)_: A single or specific result compiled by Bundles. For example: `results.bundles[x]`.
-- _bundle (verb)_: The process of running input through a series of `bundlers`.
-- _bundler_: A simple function which allows Bundles to process / compile input however you like. Without `bundlers`, Bundles will simply output the same source content. With `bundlers`, Bundles can output just about anything you want.
+- _bundle (noun)_: A single or specific result compiled by Bundles. An item in the `results.bundles` Array (i.e., `results.bundles[n]`).
+- _bundle (verb)_: The process of running input through a series of `bundlers` to achieve a desired output.
+- _bundler_: A simple JavaScript function which Bundles uses to process / compile input however you like. Without `bundlers`, Bundles will simply output source input. With `bundlers`, Bundles can output just about anything you want.
 - _config_: Refers to user configuration.
   - _global config_: Refers to the global `config` Object.
   - _bundles config_: Refers to `config.bundles`.
-  - _bundle config_: Refers to a specific bundle, i.e., `config.bundles[x]`.
+  - _bundle config_: Refers to a specific bundle, i.e., `config.bundles[n]`.
 
 ## Install
 
@@ -91,6 +91,7 @@ Bundles' API is designed to be as minimal as possible so as to be easy to use, w
 
   - **`bundles`** _{String|Array}_ Should be a comma-separated list or an Array of bundle IDs. This option tells Bundles which bundles to run. It allows you to only run a selected number of bundles rather than all that are configured.
   - **`watch`** _{Boolean|String}_ Set `true` to watch all bundles. Pass a comma-separated String to only watch the bundle IDs listed.
+  - **`loglevel`** _{String}_ Determines how to log information. Can be 'trace', 'debug', 'info', 'warn', 'error', or 'silent'.
   - **`glob`** _{Object}_ Options passed directly to [globby](https://github.com/sindresorhus/globby).
   - **`frontMatter`** _{Object}_ Options passed directly to [gray-matter](https://github.com/jonschlinkert/gray-matter).
   - **`chokidar`** _{Object}_ Options passed directly to [chokidar](https://github.com/paulmillr/chokidar).
@@ -186,7 +187,7 @@ module.exports = (bundle = {}, bundler = {}) => {
 
    - **`bundle`** _{Object}_ [The bundle Object](#the-bundle-object).
    - **`bundler`** _{Object}_ The bundler configuration. This allows users to provide bundler-specific configuration.
-     <!-- - **`config`** _{Object}_ The global configuration Object. _IMPORTANT: This is provided for access to global user options but should not be modified._ -->
+       <!-- - **`config`** _{Object}_ The global configuration Object. _IMPORTANT: This is provided for access to global user options but should not be modified._ -->
 
 2. Only modify the `bundle` Object. Other parameters are provided as read-only context, and it is strongly encouraged not to modify these Objects.
 

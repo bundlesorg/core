@@ -1,6 +1,10 @@
 /* eslint-env jest */
 const fs = require('fs-extra')
 const bundle = require('../lib/bundles.js')
+const log = require('loglevel')
+
+// Set loglevel here so jest doesn't output anything.
+log.setLevel('silent')
 
 const simpleBundle = require('../.bundlesrc.js')
 
