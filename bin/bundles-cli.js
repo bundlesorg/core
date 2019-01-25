@@ -10,7 +10,8 @@ const config = require('minimist')(process.argv.slice(2), {
   boolean: true,
   alias: {
     bundles: 'B',
-    watch: 'W'
+    watch: 'W',
+    loglevel: 'L'
   }
 })
 
