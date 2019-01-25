@@ -2,7 +2,7 @@ module.exports = {
   input: 'test/fixtures/simple.md',
   bundlers: [
     (bundle = {}) => {
-      // Return a promise with a timeout to ensure this bundle always finishes first.
+      // Return a promise to ensure this bundler always finishes first.
       return new Promise((resolve) => {
         setTimeout(() => {
           bundle.testing = 'test'
@@ -12,7 +12,7 @@ module.exports = {
       })
     },
     (bundle = {}) => {
-      // Push to `array` prop created in previous bundle to ensure correct order.
+      // Push to `array` prop created in previous bundler to verify these run in proper order.
       bundle.array.push(2)
       return bundle
     }

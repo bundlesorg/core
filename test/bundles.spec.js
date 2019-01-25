@@ -2,7 +2,7 @@
 const fs = require('fs-extra')
 const bundle = require('../lib/bundles.js')
 
-const simpleBundle = require('./fixtures/configs/.simple-bundlesrc.js')
+const simpleBundle = require('../.bundlesrc.js')
 
 function createBundle (obj = {}) {
   return Object.assign({}, simpleBundle, obj)
@@ -20,6 +20,10 @@ function addPropBundler (bundle = {}, bundler = {}) {
   if (bundler.prop && bundler.value) bundle[bundler.prop] = bundler.value
   return bundle
 }
+
+afterEach(() => {
+  fs.removeSync('.repos')
+})
 
 test('fail if `bundles` is a String and config doesn\'t exist', () => {
   expect.assertions(1)
@@ -78,7 +82,7 @@ test('run multiple bundles with config Object', () => {
 
 test('run single bundle with config file', () => {
   expect.assertions(7)
-  return bundle('./test/fixtures/configs/.simple-bundlesrc.js').then(result => {
+  return bundle('.bundlesrc.js').then(result => {
     const resultBundle = result.bundles[0]
     expect(result.success).toBe(true)
     expect(result.bundles).toBeInstanceOf(Array)
@@ -271,8 +275,35 @@ test('run and watch for changes', (done) => {
   })
 })
 
-test.skip('run with config file if no config provided by user', () => {
-  expect.assertions(1)
+test('run with a github repo as the source input', () => {
+  expect.assertions(8)
+  return bundle({ bundles: [{
+    input: ['https://github.com/brikcss/bundles-tplit.git', 'gh:brikcss/tplit', 'git@github.com:brikcss/boot-test.git'],
+    bundlers: [bundle => bundle]
+  }] }).then(result => {
+    expect(result.success).toBe(true)
+    expect(result.bundles.length).toBe(1)
+    expect(fs.pathExistsSync('.repos/bundles-tplit')).toBe(true)
+    expect(fs.pathExistsSync('.repos/bundles-tplit/README.md')).toBe(true)
+    expect(fs.pathExistsSync('.repos/tplit')).toBe(true)
+    expect(fs.pathExistsSync('.repos/tplit/README.md')).toBe(true)
+    expect(fs.pathExistsSync('.repos/boot-test')).toBe(true)
+    expect(fs.pathExistsSync('.repos/boot-test/README.md')).toBe(true)
+  })
+})
+
+test('run with config file if no config provided by user', (done) => {
+  return bundle().then(result => {
+    expect(result.bundles.length).toBe(1)
+    expect(result.bundles[0]).toMatchObject({
+      success: true,
+      input: ['test/fixtures/simple.md'],
+      id: '0',
+      testing: 'test',
+      array: [1, 2]
+    })
+    done()
+  })
 })
 
 test.skip('run with `input` as String content', () => {
