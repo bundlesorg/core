@@ -1,5 +1,7 @@
 # Bundles Core
 
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/99e4a035d4a84452ac35925fb0125afc)](https://app.codacy.com/app/Zimmees/bundles-core?utm_source=github.com&utm_medium=referral&utm_content=brikcss/bundles-core&utm_campaign=Badge_Grade_Settings)
+
 <!-- Shields. -->
 <p>
     <!-- NPM version. -->
