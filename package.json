@@ -23,9 +23,9 @@
   },
   "scripts": {
     "start": "npm run watch",
-    "test": "standard *.js && jest --coverage && cat coverage/lcov.info | coveralls && cat coverage/lcov.info | codacy-coverage",
-    "unit": "jest",
-    "watch": "jest --watchAll"
+    "test": "standard *.js && jest --config .jestrc.js --coverage && cat coverage/lcov.info | coveralls && cat coverage/lcov.info | codacy-coverage",
+    "unit": "jest --config .jestrc.js",
+    "watch": "jest --config .jestrc.js --watchAll"
   },
   "devDependencies": {
     "@brikcss/git-hooks": "^2.1.0",
