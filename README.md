@@ -3,13 +3,13 @@
 <!-- Shields. -->
 <p>
     <!-- NPM version. -->
-    <a href="https://www.npmjs.com/package/@brikcss/bundles-core"><img alt="NPM version" src="https://img.shields.io/npm/v/@brikcss/bundles-core.svg?style=flat-square"></a>
+    <a href="https://www.npmjs.com/package/@bundles/core"><img alt="NPM version" src="https://img.shields.io/npm/v/@bundles/core.svg?style=flat-square"></a>
     <!-- NPM downloads/month. -->
-    <a href="https://www.npmjs.com/package/@brikcss/bundles-core"><img alt="NPM downloads per month" src="https://img.shields.io/npm/dm/@brikcss/bundles-core.svg?style=flat-square"></a>
+    <a href="https://www.npmjs.com/package/@bundles/core"><img alt="NPM downloads per month" src="https://img.shields.io/npm/dm/@bundles/core.svg?style=flat-square"></a>
     <!-- Travis branch. -->
     <a href="https://github.com/brikcss/bundles-core/tree/master"><img alt="Travis branch" src="https://img.shields.io/travis/rust-lang/rust/master.svg?style=flat-square&label=master"></a>
     <!-- Codacy. -->
-    <a href="https://www.codacy.com/app/Zimmees/bundles-core"><img alt="Codacy code coverage" src="https://img.shields.io/codacy/coverage/35aeb04393844d258ed971189c18bf48.svg?style=flat-square"></a>
+    <!-- <a href="https://www.codacy.com/app/thezimmee/bundles-core"><img alt="Codacy code coverage" src="https://img.shields.io/codacy/coverage/35aeb04393844d258ed971189c18bf48.svg?style=flat-square"></a> -->
     <!-- Coveralls -->
     <a href='https://coveralls.io/github/brikcss/bundles-core?branch=master'><img src='https://img.shields.io/coveralls/github/brikcss/bundles-core/master.svg?style=flat-square' alt='Coverage Status' /></a>
     <!-- JS Standard style. -->
