@@ -23,8 +23,7 @@
   },
   "scripts": {
     "start": "npm run watch",
-    "test": "standard *.js && jest --config .jestrc.js --coverage && cat coverage/lcov.info | codacy-coverage",
-    "posttest": "cat coverage/lcov.info | coveralls",
+    "test": "standard *.js && jest --config .jestrc.js --coverage && cat coverage/lcov.info | codacy-coverage && cat coverage/lcov.info | coveralls",
     "unit": "jest --config .jestrc.js",
     "watch": "jest --config .jestrc.js --watchAll"
   },
