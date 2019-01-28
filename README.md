@@ -37,12 +37,12 @@ Bundles is a file bundler, similar to [WebPack](https://webpack.js.org/), [Rollu
 
 ## Terminology
 
-To be clear, the usage of the following terms are defined as follows:
+To provide clarity, the following terms are used as follows:
 
 - _Bundles_ (capitalized): The core package / tool for Bundles.
 - _bundles_: Results compiled by Bundles. More specifically this refers to the `results.bundles` returned by `Bundles`. This may also refer to `config.bundles`, which eventually turns into `results.bundles`.
-- _bundle (noun)_: A single or specific result compiled by Bundles. An item in the `results.bundles` Array (i.e., `results.bundles[n]`).
-- _bundle (verb)_: The process of running input through a series of `bundlers` to achieve a desired output.
+- _bundle (noun)_: A single or specific result compiled by Bundles. An item in the `results.bundles` Array (i.e., `results.bundles[n]`). `bundle` may also refer to the command which runs Bundles on the CLI.
+- _bundle (verb)_: The process of running input through a series of `bundlers` to achieve a desired output. `bundle` on the CLI is also an alias to
 - _bundler_: A simple JavaScript function which Bundles uses to process / compile input however you like. Without `bundlers`, Bundles will simply output source input. With `bundlers`, Bundles can output just about anything you want.
 - _config_: Refers to user configuration.
   - _global config_: Refers to the global `config` Object.
@@ -51,25 +51,35 @@ To be clear, the usage of the following terms are defined as follows:
 
 ## Install
 
+It is recommended to install bundles globally:
+
+```sh
+npm install @bundles/core -g
+```
+
+Though you can install as a local dependency:
+
 ```sh
 npm install @bundles/core -D
 ```
 
 ## Usage
 
-Bundles can be run in Node or the command line:
+Bundles can be run in Node:
 
 **Node:**
 
 ```js
-const bundles = require('@bundles/core');
-bundles(config, options);
+const bundle = require('@bundles/core');
+bundle(config, options);
 ```
+
+Or on the command line with the `bundle` command:
 
 **CLI:**
 
 ```sh
-bundles <source files> [options]
+bundle <path/to/config/file> [options]
 ```
 
 _Note: All runtime `options` get merged down to `config.options`. `options` only exists separate from `config.options` to allow user to pass runtime options (i.e., the `watch` flag), which override `config.options`._
@@ -90,12 +100,16 @@ Bundles' API is designed to be as minimal as possible so as to be easy to use, w
 
 - **`options`** _{Object}_ Configuration options. _IMPORTANT: Any `options` passed to Bundles -- either from the command line or in Node -- get merged here._
 
-  - **`bundles`** _{String|Array}_ Should be a comma-separated list or an Array of bundle IDs. This option tells Bundles which bundles to run. It allows you to only run a selected number of bundles rather than all that are configured.
-  - **`watch`** _{Boolean|String}_ Set `true` to watch all bundles. Pass a comma-separated String to only watch the bundle IDs listed.
-  - **`loglevel`** _{String}_ Determines how to log information. Can be 'trace', 'debug', 'info', 'warn', 'error', or 'silent'.
-  - **`glob`** _{Object}_ Options passed directly to [globby](https://github.com/sindresorhus/globby).
-  - **`frontMatter`** _{Object}_ Options passed directly to [gray-matter](https://github.com/jonschlinkert/gray-matter).
-  - **`chokidar`** _{Object}_ Options passed directly to [chokidar](https://github.com/paulmillr/chokidar).
+  - **`bundles` (`--bundles` or `-B`)** _{String|Array}_ Should be a comma-separated list or an Array of bundle IDs. This option tells Bundles which bundles to run. It allows you to only run a selected number of bundles rather than all that are configured.
+  - **`watch` (`--watch` or `-W`)** _{Boolean|String}_ Set `true` to watch all bundles. Pass a comma-separated String to only watch the bundle IDs listed.
+  - **`loglevel` (`--loglevel` or `-L`)** _{String}_ Determines how to log information. Can be 'trace', 'debug', 'info', 'warn', 'error', or 'silent'.
+  - **`glob` (`--glob` or `-G`)** _{Object}_ Options passed directly to [globby](https://github.com/sindresorhus/globby).
+  - **`frontMatter` (`--front-matter` or `-M`)** _{Object}_ Options passed directly to [gray-matter](https://github.com/jonschlinkert/gray-matter).
+  - **`chokidar` (`--chokidar` or `-C`)** _{Object}_ Options passed directly to [chokidar](https://github.com/paulmillr/chokidar).
+
+### The Command Line
+
+Bundles is designed to be run with a config file. However, as documented above, the CLI executable supports passing properties in `config.options` as flags at runtime. If the property is a Boolean, the existence of the flag will set the option to `true`. If the property is an Object, it must be a JSON string, which uses `JSON.parse()` to parse it.
 
 ### The Bundle Object
 

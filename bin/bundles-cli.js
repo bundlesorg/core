@@ -11,8 +11,16 @@ const config = require('minimist')(process.argv.slice(2), {
   alias: {
     bundles: 'B',
     watch: 'W',
-    loglevel: 'L'
+    loglevel: 'L',
+    glob: 'G',
+    frontMatter: 'M',
+    chokidar: 'C'
   }
+})
+// Parse object properties to an Object.
+const objectProps = ['glob', 'frontMatter', 'chokidar']
+objectProps.forEach(prop => {
+  if (config[prop]) config[prop] = JSON.parse(config[prop])
 })
 
 // -------------------------------------------------------------------------------------------------
