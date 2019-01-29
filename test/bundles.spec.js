@@ -296,6 +296,41 @@ test('run with config file if no config provided by user', (done) => {
   })
 })
 
+test('run with global and local `data`', () => {
+  expect.assertions(2)
+  return bundle({ bundles: [{
+    input: ['test/fixtures/simple.md'],
+    data: {
+      local: true,
+      winner: 'local'
+    },
+    bundlers: [bundle => bundle]
+  }, {
+    input: ['test/fixtures/front-matter.md'],
+    data: {
+      local: true,
+      winner: 'local'
+    },
+    bundlers: [bundle => bundle]
+  }],
+  data: {
+    global: true,
+    winner: 'global'
+  } }).then(result => {
+    expect(result.bundles[0].output[0].data).toMatchObject({
+      local: true,
+      global: true,
+      winner: 'local'
+    })
+    expect(result.bundles[1].output[0].data).toMatchObject({
+      local: true,
+      global: true,
+      matter: true,
+      winner: 'local'
+    })
+  })
+})
+
 test.skip('run with `input` as String content', () => {
   expect.assertions(1)
 })

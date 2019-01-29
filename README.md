@@ -39,33 +39,31 @@ Bundles is a file bundler, similar to [WebPack](https://webpack.js.org/), [Rollu
 
 To provide clarity, the following terms are used as follows:
 
-- _Bundles_ (capitalized): The core package / tool for Bundles.
-- _bundles_: Results compiled by Bundles. More specifically this refers to the `results.bundles` returned by `Bundles`. This may also refer to `config.bundles`, which eventually turns into `results.bundles`.
-- _bundle (noun)_: A single or specific result compiled by Bundles. An item in the `results.bundles` Array (i.e., `results.bundles[n]`). `bundle` may also refer to the command which runs Bundles on the CLI.
-- _bundle (verb)_: The process of running input through a series of `bundlers` to achieve a desired output. `bundle` on the CLI is also an alias to
-- _bundler_: A simple JavaScript function which Bundles uses to process / compile input however you like. Without `bundlers`, Bundles will simply output source input. With `bundlers`, Bundles can output just about anything you want.
-- _config_: Refers to user configuration.
-  - _global config_: Refers to the global `config` Object.
-  - _bundles config_: Refers to `config.bundles`.
-  - _bundle config_: Refers to a specific bundle, i.e., `config.bundles[n]`.
+-   _Bundles_ (capitalized): The core package / tool for Bundles.
+-   _bundles_: Results compiled by Bundles. More specifically this refers to the `results.bundles` returned by `Bundles`. This may also refer to `config.bundles`, which eventually turns into `results.bundles`.
+-   _bundle (noun)_: A single or specific result compiled by Bundles. An item in the `results.bundles` Array (i.e., `results.bundles[n]`). `bundle` may also refer to the command which runs Bundles on the CLI.
+-   _bundle (verb)_: The process of running input through a series of `bundlers` to achieve a desired output. `bundle` on the CLI is also an alias to
+-   _bundler_: A simple JavaScript function which Bundles uses to process / compile input however you like. Without `bundlers`, Bundles will simply output source input. With `bundlers`, Bundles can output just about anything you want.
+-   _config_: Refers to user configuration.
+    -   _global config_: Refers to the global `config` Object.
+    -   _bundles config_: Refers to `config.bundles`.
+    -   _bundle config_: Refers to a specific bundle, i.e., `config.bundles[n]`.
 
 ## Install
 
-It is recommended to install bundles globally:
+Install globally (_recommended_):
 
 ```sh
 npm install @bundles/core -g
 ```
 
-Though you can install as a local dependency:
+or locally:
 
 ```sh
 npm install @bundles/core -D
 ```
 
 ## Usage
-
-Bundles can be run in Node:
 
 **Node:**
 
@@ -74,132 +72,157 @@ const bundle = require('@bundles/core');
 bundle(config, options);
 ```
 
-Or on the command line with the `bundle` command:
-
 **CLI:**
 
 ```sh
 bundle <path/to/config/file> [options]
 ```
 
-_Note: All runtime `options` get merged down to `config.options`. `options` only exists separate from `config.options` to allow user to pass runtime options (i.e., the `watch` flag), which override `config.options`._
+_NOTE: Bundles is designed to be run with a config file. However, as documented below, the CLI executable supports passing certain `config.options` properties as flags at CLI runtime. All runtime `options` are merged down to `config.options`._
 
-## Configuration
+### The `config` Object
 
-Bundles' API is designed to be as minimal as possible so as to be easy to use, while also retaining a reasonable amount of flexibility. It is intended that most configuration can and should come from bundlers.
+Bundles' API is designed to be minimal and easy to use, while reasonably flexible. It is intended that most configuration can and should come from bundlers. The `config` Object consists of the following properties:
 
-- **`bundles`** (_required_) _{Object[]}_ Bundle configuration Objects which determine how each bundle is to be processed. Each `bundle` has the following properties:
+-   **`bundles`** (_required_) _{Object[]}_ An Array of `bundle` Objects. Each `bundle` Object tells Bundles 1) what to compile, and 2) how to compile it. The `bundle` Object contains the following properties:
 
-  - **`input`** (_required_) _{String|Glob}_ Input files to process.
-  - **`bundlers`** (_required_) _{String[]|Function[]|Object[]}_ Each bundler processes or compiles the content and/or data from `input` in a specified way. See [bundler Objects](#bundler-objects).
-  - **`id`** _{String}_ ID / identifier for this bundle. If this doesn't exist, Bundles will use its index position in `bundles`.
+    -   **`id`** _{String}_ The bundle ID, used only for logging purposes. If not provided, Bundles will use its index position in `config.bundles`.
+    -   **`input`** _{Glob[]}_ Array of input file paths or globs which tell Bundles what to compile. Bundles uses [globby](https://github.com/sindresorhus/globby) to process each String to actual file paths.
+    -   **`data`** _{Object|Function}_ Local data. See [working with user data](#working-with-user-data).
+    -   **`bundlers`** _{String[]|Function[]|Object[]}_ A series of `bundler`s which tell Bundles how to compile the bundle. A `bundler` can be any of the following:
 
-- **`options`** _{Object}_ Configuration options. _IMPORTANT: Any `options` passed to Bundles -- either from the command line or in Node -- get merged here._
+        -   `String`: A String will be "required" with node. For example, `'my-cool-bundler'` will require the `my-cool-bundler` NPM package, and `'./path/to/bundler'` will require the `bundler` local package.
+        -   `Function`: A custom Function will be called when the bundler runs. For example: `(bundle = {}, bundler = {}) => { /* Do something cool. */ }`.
+        -   `Object`: This is the most flexible way to configure a `bundler`, as it lets you pass settings offered by the bundler's author. For example: `{ run: (bundle, bundler) => { /* Do something cool. */ }, options: { /* Options provided by bundler author. */ }}`.
 
-  - **`bundles` (`--bundles` or `-B`)** _{String|Array}_ Should be a comma-separated list or an Array of bundle IDs. This option tells Bundles which bundles to run. It allows you to only run a selected number of bundles rather than all that are configured.
-  - **`watch` (`--watch` or `-W`)** _{Boolean|String}_ Set `true` to watch all bundles. Pass a comma-separated String to only watch the bundle IDs listed.
-  - **`loglevel` (`--loglevel` or `-L`)** _{String}_ Determines how to log information. Can be 'trace', 'debug', 'info', 'warn', 'error', or 'silent'.
-  - **`glob` (`--glob` or `-G`)** _{Object}_ Options passed directly to [globby](https://github.com/sindresorhus/globby).
-  - **`frontMatter` (`--front-matter` or `-M`)** _{Object}_ Options passed directly to [gray-matter](https://github.com/jonschlinkert/gray-matter).
-  - **`chokidar` (`--chokidar` or `-C`)** _{Object}_ Options passed directly to [chokidar](https://github.com/paulmillr/chokidar).
+        _IMPORTANT: Bundler authors Other properties are typically available to allow users to configure each bundler. Make sure to read documentation for each bundler for how to configure them._
 
-### The Command Line
+-   **`options`** _{Object}_ Configuration options.
 
-Bundles is designed to be run with a config file. However, as documented above, the CLI executable supports passing properties in `config.options` as flags at runtime. If the property is a Boolean, the existence of the flag will set the option to `true`. If the property is an Object, it must be a JSON string, which uses `JSON.parse()` to parse it.
+    -   **`bundles` (`--bundles` or `-B`)** _{String|Array}_ Should be a comma-separated list or an Array of bundle IDs. This option tells Bundles which bundles to run. It allows you to only run a selected number of bundles rather than all that are configured.
+    -   **`watch` (`--watch` or `-W`)** _{Boolean|String}_ Set `true` to watch all bundles. Pass a comma-separated String to only watch the bundle IDs listed.
+    -   **`loglevel` (`--loglevel` or `-L`)** _{String}_ Determines how to log information. Can be 'trace', 'debug', 'info', 'warn', 'error', or 'silent'.
+    -   **`glob` (`--glob` or `-G`)** _{Object}_ Options passed directly to [globby](https://github.com/sindresorhus/globby).
+    -   **`frontMatter` (`--front-matter` or `-M`)** _{Object}_ Options passed directly to [gray-matter](https://github.com/jonschlinkert/gray-matter).
+    -   **`chokidar` (`--chokidar` or `-C`)** _{Object}_ Options passed directly to [chokidar](https://github.com/paulmillr/chokidar).
 
-### The Bundle Object
+-   **`data`** _{Object|Function}_ Global data. See [working with user data](#working-with-user-data).
 
-It is important to understand the `bundle` Object in order to grasp how Bundles, and bundler plugins, work. Each `bundle` contains the following properties:
+#### Working with User Data
 
-- **`id`** _{String}_ The bundle ID. Defaults to its index position.
-- **`input`** _{String[]}_ Array of input file paths (Strings) returned by [globby](https://github.com/sindresorhus/globby).
-- **`output`** _{Object[]}_ Each Object is a file Object with the following properties:
-  - **`source`** _{Object}_ The source file is read in and this `source` Object created by [gray-matter](https://www.npmjs.com/package/gray-matter). _These properties should not be modified._ `source` contains the following properties (along with all other properties [returned by gray-matter](https://www.npmjs.com/package/gray-matter#returned-object)):
-    - **`path`** _{String}_ Source file path.
-    - **`content`** _{String}_ Source content (should not be modified).
-    - **`data`** _{String}_ Source front matter data (should not be modified).
-  - **`content`** _{String}_ Output content (can be modified).
-  - **`data`** _{String}_ Output front matter data (can be modified).
-- **`bundlers`** _{Object[]}_ A bundler is a plugin that processes/compiles content/data. See [bundler Objects](#bundler-objects).
-- **`watch`** _{Boolean}_ Whether this bundle is configured to be watched.
-- **`on`** _{Object}_ Callback functions to hook into core functionality.
+Bundles seamlessly integrates with custom and dynamic user data. While Bundles core does nothing with user data, bundlers can use data to make Bundles more powerful and dynamic.
 
-### Bundler Objects
+Data can be provided to Bundles any of the following ways:
 
-A bundler is a JavaScript plugin that processes content and/or data from `config.input`. A bundler can be configured any of the following ways:
+-   front matter (`file.data`)
+-   global data (`config.data`)
+-   local data (`bundle.data`)
 
-- A Function: `(bundle = {}, bundler = {}) => { // Do something cool. }`.
-- A Node module: `'my-cool-bundler'` or `'./path/to/bundler'`
-- An Object, where the `run` property is a Node module or a Function. This allows you to attach bundler specific configuration.
+##### Data Merge Order / Priority
 
-During runtime, each bundler is normalized to an Object with the following properties:
-
-- **`success`** _{Boolean}_ Whether the bundler ran successfully.
-- **`error`** _{Error}_ Error Object if an error occurs running the bundler.
-- **`run`** _{Function}_ The bundler Function which processes the bundle. If it is a node module it is the default export for that module, which must be a function.
-- **`_meta`** _{Object}_ Private metadata about the bundler.
-
-**Other properties are typically available to allow users to configure each bundler. Make sure to read documentation for each bundler for how to configure them.**
-
-### The Result Object
-
-Upon completion (i.e., after running all bundlers), Bundles returns a result Object similar to the original `config` Object. The result Object has the following useful properties:
-
-- **`success`** _{Boolean}_ Whether all bundles compiled successfully.
-- **`bundles`** _{Object[]}_ Bundles that ran. Each bundle Object has the following properties:
-  - **`success`** _{Boolean}_ Whether bundle compiled successfully.
-  - **`output`** _{Object[]}_ File(s) to output.
-  - **`watch`** _{Boolean}_ Whether the bundle is being watched.
-  - **`_meta`** _{Object}_ Metadata used internal.
-- **`bundlesMap`** _{Object}_ Dictionary of bundles that ran, organized by bundle ID. Provided simply for an alternative way to look up bundle results.
-- **`options`** _{Object}_ Run time options, merged with configuration options.
-- **`watchers`** _{Object}_ A dictionary of watchers created by [chokidar](https://github.com/paulmillr/chokidar), organized by bundle ID.
-- **`on`** _{Object}_ A dictionary of configured callbacks, organized by callback name.
-- **`_meta`** _{Object}_ Metadata used internally. May change at any time.
-
-## Using bundlers
-
-## Creating a bundler
-
-It is easy to create your own custom bundler. A bundler is simply a function which returns the `bundle`. Here are two simple examples:
+A deep merge is performed to merge data in the following order (lowest priority -> highest):
 
 ```js
-const fs = require('fs');
-module.exports = (bundle = {}, bundler = {}) => {
-  bundle.output.forEach((result) => {
-    result.content = result.content += '\n';
-    return result.content;
-  });
-  // Must return the bundle Object.
-  return bundle;
+merge({}, file.data, config.data, bundle.data);
+```
+
+##### Front Matter Data
+
+Front matter can be provided in YAML, JSON, or JavaScript. See [gray-matter documentation](https://github.com/jonschlinkert/gray-matter) for details.
+
+##### Global and Local Data
+
+Local data (`bundle.data`) is merged on top of global data (`config.data`), and either one can be an `Object` or a `Function` that returns an Object:
+
+```js
+config = {
+    data: (file, bundle) => {
+        // Return data Object here.
+    },
 };
 ```
 
-You may also return a Promise which returns the `bundle` Object:
+### The `result` Object
+
+After compiling (i.e., after running all `bundler`s), Bundles returns a `result` Object which is a beefed up version of the original `config` Object. The `result` Object has the following useful properties:
+
+-   **`success`** _{Boolean}_ Whether all bundles completed successfully.
+-   **`bundles`** _{Object[]}_ Bundles that ran during the original compile. Each `bundle` Object has the following properties:
+    -   **`success`** _{Boolean}_ Whether bundle compiled successfully.
+    -   **`output`** _{Object[]}_ An Array of [`file` Objects](#the-file-object), each of which contain both source content and data, as well as content and data that Bundles will eventually output.
+    -   **`_meta`** _{Object}_ Metadata used internal.
+-   **`bundlesMap`** _{Object}_ Dictionary of bundles that ran, organized by bundle ID. Provided simply for an alternative way to look up bundle results.
+-   **`options`** _{Object}_ Run time options, merged with configuration options.
+-   **`watchers`** _{Object}_ A dictionary of watchers created by [chokidar](https://github.com/paulmillr/chokidar), organized by bundle ID.
+-   **`_meta`** _{Object}_ Metadata used internally. May change at any time.
+
+### The `file` Object
+
+The `file` Object, or `result.bundles[n].output`, contains both source and compiled content and data for a single output (i.e., a file). Bundler authors must become extremely familiar the `output` property.
+
+Each `output` Object contains the following properties:
+
+-   **`source`** _{Object}_ The source file is read in and this `source` Object created by [gray-matter](https://www.npmjs.com/package/gray-matter). **`source` properties should not be modified.** `source` contains the following properties (along with all other properties [returned by gray-matter](https://www.npmjs.com/package/gray-matter#returned-object)):
+    -   **`path`** _{String}_ Source file path.
+    -   **`content`** _{String}_ Source content (should not be modified).
+    -   **`data`** _{String}_ Source front matter data (should not be modified).
+-   **`content`** _{String}_ Output content, intended to be modified by `bundler`s.
+-   **`data`** _{String}_ Output data, intended to be modified by `bundler`s. See [working with user data](#working-with-user-data).
+
+## Creating a `bundler`
+
+A `bundler` is a simple Node module that returns a Function. There is very little boilerplate and it is easy to create. For example:
+
+```js
+module.exports = (bundle, bundler) => bundle;
+```
+
+While the above example only returns the content and data exactly as it was found, it illustrates how little boilerplate is required and how easy it is to create a `bundler`.
+
+Here is another example which appends a new line (`\n`) to the end of the content:
 
 ```js
 const fs = require('fs');
 module.exports = (bundle = {}, bundler = {}) => {
-  // Return a promise...
-  return new Promise((resolve) => {
-    bundle.output.forEach((result) => {
-      result.content = result.content += '\n';
-      return result.content;
+    bundle.output.forEach((file) => {
+        file.content = file.content += '\n';
+        return file.content;
     });
-    // ...which resolves the bundle Object.
-    return resolve(bundle);
-  });
+    // Don't forget to always return the bundle Object.
+    return bundle;
+};
+```
+
+You may also return a Promise, so long as it returns the `bundle` Object:
+
+```js
+const fs = require('fs');
+module.exports = (bundle = {}, bundler = {}) => {
+    // Return a promise...
+    return new Promise((resolve) => {
+        bundle.output.forEach((file) => {
+            file.content = file.content += '\n';
+            return file.content;
+        });
+        // ...which resolves the bundle Object.
+        return resolve(bundle);
+    });
 };
 ```
 
 ### Guidelines for creating a bundler
 
-1. A bundler must return a function which returns the modified `bundle` Object. The function receives, and allows you to use, the following parameters (see examples above):
+1. A `bundler` must return a Function -- synchronous or asynchronous -- which returns the `bundle` Object. As illustrated above, the `bundle` Object, as well as the `bundler` Object, are passed to this Function. See [the `config` Object](#the-config-object) for details about these Objects.
 
-   - **`bundle`** _{Object}_ [The bundle Object](#the-bundle-object).
-   - **`bundler`** _{Object}_ The bundler configuration. This allows users to provide bundler-specific configuration.
-       <!-- - **`config`** _{Object}_ The global configuration Object. _IMPORTANT: This is provided for access to global user options but should not be modified._ -->
+2. To access and modify content and data to be output, simply iterate through `bundle.output`, which contains [`file` Objects](#the-file-object) (**become familiar with the `file` Object**). For example:
 
-2. Only modify the `bundle` Object. Other parameters are provided as read-only context, and it is strongly encouraged not to modify these Objects.
+    ```js
+    module.exports = (bundle = {}, bundler = {}) => {
+        bundle.output.forEach((file) => {
+            // Modify files here.
+        });
+        return bundle;
+    };
+    ```
 
-3. Internally, the `bundler` Object only uses a few properties. This allows bundler authors flexibility in how they provide their custom set of configuration properties for their users. However, as a caution, Bundles reserves the right to add more internal properties in the future (any breaking changes, of course, will be [semantically versioned](https://semver.org/)), so bundler authors are encouraged to wrap their configuration in a single parent Object such as `options` (i.e., `bundler.options`). See [bundler Objects](#bundler-objects) for more about bundlers and their properties.
+3. You typically shouldn't need to modify anything except the `file` Objects contained in `bundle.output`. Other properties are provided for convenience, but generally should be considered read-only.

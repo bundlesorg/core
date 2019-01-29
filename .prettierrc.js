@@ -10,5 +10,11 @@ module.exports = {
   tabs: false,
   tabWidth: 2,
   trailingComma: 'all',
-  useTabs: false
+  useTabs: false,
+  overrides: [{
+    files: '*.md',
+    options: {
+      tabWidth: 4
+    }
+  }]
 }
