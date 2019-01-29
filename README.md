@@ -94,10 +94,6 @@ Bundles' API is designed to be as minimal as possible so as to be easy to use, w
   - **`bundlers`** (_required_) _{String[]|Function[]|Object[]}_ Each bundler processes or compiles the content and/or data from `input` in a specified way. See [bundler Objects](#bundler-objects).
   - **`id`** _{String}_ ID / identifier for this bundle. If this doesn't exist, Bundles will use its index position in `bundles`.
 
-- **`on`** _{Object}_ Callback functions which hook into the Bundles workflow. Potential hooks include:
-
-  - **`afterChange( bundle, { filepath, config } )`** _{Function}_ Runs after a source file changes, but only if the file is being watched.
-
 - **`options`** _{Object}_ Configuration options. _IMPORTANT: Any `options` passed to Bundles -- either from the command line or in Node -- get merged here._
 
   - **`bundles` (`--bundles` or `-B`)** _{String|Array}_ Should be a comma-separated list or an Array of bundle IDs. This option tells Bundles which bundles to run. It allows you to only run a selected number of bundles rather than all that are configured.

@@ -5,7 +5,7 @@
 // Set up environment.
 //
 
-const bundle = require('@bundles/core')
+const bundle = require('../lib/bundles.min.js')
 const config = require('minimist')(process.argv.slice(2), {
   boolean: true,
   alias: {

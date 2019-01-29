@@ -1,14 +1,13 @@
 /* eslint-env jest */
-const rm = require('rimraf')
 const { exec } = require('child_process')
 const fs = require('fs-extra')
-const path = require('path')
-const cliPath = 'bin/bundles-cli.js'
+// const path = require('path')
+const cliPath = 'bin/bundles.js'
 
 jest.setTimeout(3000)
 
 afterEach(() => {
-  rm.sync('.temp')
+  fs.removeSync('.temp')
 })
 
 test('run from command line', (done) => {

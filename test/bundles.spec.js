@@ -31,7 +31,7 @@ afterEach(() => {
 
 test('fail if `bundles` is a String and config doesn\'t exist', () => {
   expect.assertions(1)
-  return expect(bundle('file/that/doesnt/exist.js')).rejects.toThrow()
+  return expect(bundle('file/that/doesnt/exist.js')).resolves.toThrow()
 })
 
 test('run single bundle with config Object', () => {
@@ -222,65 +222,44 @@ test('run only specified bundles', () => {
 })
 
 // Only run this test if it's not the CI.
-if (!process.env.CI && !process.env.CONTINUOUS_INTEGRATION) {
-  test('run and watch for changes', (done) => {
-    expect.assertions(15)
-    fs.outputFileSync('./.temp/temp.md', '# I have short life...\n\n...but it was good life.\n')
-    fs.outputFileSync('./.temp/simple.md', '# I am simple...\n\n...but also complex.\n')
-    let numChanges = 0
-    return bundle({ bundles: [{
-      id: 'one',
+test('run and watch for changes', () => {
+  expect.assertions(10)
+  fs.outputFileSync('./.temp/temp.md', '# I have short life...\n\n...but it was good life.\n')
+  fs.outputFileSync('./.temp/simple.md', '# I am simple...\n\n...but also complex.\n')
+  return bundle({ bundles: [{
+    id: 'one',
+    input: ['./.temp/simple.md', './.temp/temp.md'],
+    bundlers: [simpleBundle.bundlers[0], simpleBundle.bundlers[1]]
+  }] }, { watch: true }).then(result => {
+    // Check that all is well with initial build.
+    const resultBundle = result.bundles[0]
+    expect(result.success).toBe(true)
+    expect(result.bundles).toBeInstanceOf(Array)
+    expect(result.bundles.length).toBe(1)
+    expect(resultBundle.success).toBe(true)
+    expect(resultBundle.bundlers).toBeInstanceOf(Array)
+    expect(resultBundle.bundlers.every(bundler => bundler.success && !bundler.error)).toBe(true)
+    expect(resultBundle).toMatchObject({
+      success: true,
       input: ['./.temp/simple.md', './.temp/temp.md'],
-      bundlers: [simpleBundle.bundlers[0], simpleBundle.bundlers[1]]
-    }],
-    on: {
-      afterChange: (bundle, { filepath, config }) => {
-        numChanges++
-        expect(bundle.id).toBe('one')
-        if (numChanges === 1) {
-          expect(filepath).toBe('.temp/simple.md')
-          expect(bundle.output[0].content).toBe('# I am simple...\n\n...but also complex.\n\nI am new here.\n')
-        }
-        if (numChanges === 2) {
-          expect(filepath).toBe('.temp/temp.md')
-          expect(bundle.output[1].content).toBe('# I have short life...\n\n...but it was good life.\n\nI am temporarily new here.\n')
-          fs.removeSync('.temp')
-          done()
-        }
-        return bundle
-      }
-    } }, { watch: true }).then(result => {
-      // Check that all is well with initial build.
-      const resultBundle = result.bundles[0]
-      expect(result.success).toBe(true)
-      expect(result.bundles).toBeInstanceOf(Array)
-      expect(result.bundles.length).toBe(1)
-      expect(resultBundle.success).toBe(true)
-      expect(resultBundle.bundlers).toBeInstanceOf(Array)
-      expect(resultBundle.bundlers.every(bundler => bundler.success && !bundler.error)).toBe(true)
-      expect(resultBundle).toMatchObject({
-        success: true,
-        input: ['./.temp/simple.md', './.temp/temp.md'],
-        id: 'one',
-        testing: 'test',
-        array: [1, 2]
-      })
-      // Make sure watcher exists.
-      expect(Object.keys(result.watchers).length).toBe(1)
-      expect(result.watchers.one).toMatchObject({
-        id: 'one',
-        _eventsCount: 3,
-        closed: false,
-        options: {}
-      })
-      // Modify source files and make sure they get rebundled.
-      fs.outputFileSync('./.temp/simple.md', fs.readFileSync('./.temp/simple.md', 'utf8') + '\nI am new here.\n')
-      setTimeout(() => {
-        fs.outputFileSync('./.temp/temp.md', fs.readFileSync('./.temp/temp.md', 'utf8') + '\nI am temporarily new here.\n')
-      }, 100)
+      id: 'one',
+      testing: 'test',
+      array: [1, 2]
     })
+    // Make sure watcher exists.
+    expect(Object.keys(result.watchers).length).toBe(1)
+    expect(result.watchers.one).toMatchObject({
+      id: 'one',
+      _eventsCount: 3,
+      closed: false,
+      options: {}
+    })
+    result.watchers.one.unwatch()
+    result.watchers.one.close()
+    expect(result.watchers.one.closed).toBe(true)
+    fs.removeSync('.temp')
   })
-}
+})
 
 // Only run if $GH_TOKEN exists.
 if (process.env.GH_TOKEN) {
