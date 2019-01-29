@@ -17,7 +17,7 @@
   "files": ["lib", "bin"],
   "main": "./lib/bundles.min.js",
   "bin": {
-    "bundle": "./bin/bundles-cli.min.js"
+    "bundle": "./bin/bundles.min.js"
   },
   "publishConfig": {
     "tag": "dev",
