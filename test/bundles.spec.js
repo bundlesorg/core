@@ -126,7 +126,7 @@ test('run multiple bundles with config file', () => {
 test('run with bundlers as a String (node modules)', () => {
   expect.assertions(6)
   return bundle({ bundles: [{
-    input: 'test/fixtures/simple.md',
+    input: ['test/fixtures/simple.md'],
     bundlers: ['./test/fixtures/bundlers/append-new-line.js', { run: './test/fixtures/bundlers/add-prop.js', prop: 'test', value: 123 }]
   }] }).then(result => {
     const bundle = result.bundles[0]
@@ -331,6 +331,14 @@ test('run with global and local `data`', () => {
   })
 })
 
-test.skip('run with `input` as String content', () => {
-  expect.assertions(1)
+test('run with `input` as String content', () => {
+  expect.assertions(2)
+  const content = '# I am content\n\nSee me roar.\n'
+  return bundle({ bundles: [{
+    input: content,
+    bundlers: [bundle => bundle]
+  }] }).then(result => {
+    expect(result.bundles[0].output[0].content).toBe(content)
+    expect(result.bundles[0].output[0].source.path).toBe(undefined)
+  })
 })

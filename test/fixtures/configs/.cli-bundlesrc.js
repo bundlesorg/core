@@ -1,7 +1,7 @@
 module.exports = {
   bundles: [{
     id: 'bundle1',
-    input: './test/fixtures/bundlers/add-prop.js',
+    input: ['./test/fixtures/bundlers/add-prop.js'],
     bundlers: [
       (bundle = {}) => {
       // Return a promise with a timeout to ensure this bundle always finishes first.
@@ -21,7 +21,7 @@ module.exports = {
     ]
   }, {
     id: 'bundle2',
-    input: './test/fixtures/simple.md',
+    input: ['./test/fixtures/simple.md'],
     bundlers: [appendNewLineBundler, outputBundler]
   }]
 }

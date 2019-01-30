@@ -87,8 +87,9 @@ Bundles' API is designed to be minimal and easy to use, while reasonably flexibl
 -   **`bundles`** (_required_) _{Object[]}_ An Array of `bundle` Objects. Each `bundle` Object tells Bundles 1) what to compile, and 2) how to compile it. The `bundle` Object contains the following properties:
 
     -   **`id`** _{String}_ The bundle ID, used only for logging purposes. If not provided, Bundles will use its index position in `config.bundles`.
-    -   **`input`** _{Glob[]}_ Array of input file paths or globs which tell Bundles what to compile. Bundles uses [globby](https://github.com/sindresorhus/globby) to process each String to actual file paths.
+    -   **`input`** _{Glob[]|String}_ Array of file paths or globs which tells Bundles what source file paths to compile. You may also pass a String, which Bundles will interpret as the content to compile. This allows you to pass or pipe data from stdin.
     -   **`data`** _{Object|Function}_ Local data. See [working with user data](#working-with-user-data).
+    -   **`options`** _{Object}_ Configuration options, gets merged on top of `config.options`. Same properties exist as in `config.options`.
     -   **`bundlers`** _{String[]|Function[]|Object[]}_ A series of `bundler`s which tell Bundles how to compile the bundle. A `bundler` can be any of the following:
 
         -   `String`: A String will be "required" with node. For example, `'my-cool-bundler'` will require the `my-cool-bundler` NPM package, and `'./path/to/bundler'` will require the `bundler` local package.
@@ -97,12 +98,12 @@ Bundles' API is designed to be minimal and easy to use, while reasonably flexibl
 
         _IMPORTANT: Bundler authors Other properties are typically available to allow users to configure each bundler. Make sure to read documentation for each bundler for how to configure them._
 
--   **`options`** _{Object}_ Configuration options.
+-   **`options`** _{Object}_ Global options.
 
     -   **`bundles` (`--bundles` or `-B`)** _{String|Array}_ Should be a comma-separated list or an Array of bundle IDs. This option tells Bundles which bundles to run. It allows you to only run a selected number of bundles rather than all that are configured.
     -   **`watch` (`--watch` or `-W`)** _{Boolean|String}_ Set `true` to watch all bundles. Pass a comma-separated String to only watch the bundle IDs listed.
     -   **`loglevel` (`--loglevel` or `-L`)** _{String}_ Determines how to log information. Can be 'trace', 'debug', 'info', 'warn', 'error', or 'silent'.
-    -   **`glob` (`--glob` or `-G`)** _{Object}_ Options passed directly to [globby](https://github.com/sindresorhus/globby).
+    -   **`glob` (`--glob` or `-G`)** _{Object}_ Options passed directly to [globby](https://github.com/sindresorhus/globby), for use with `input` globs.
     -   **`frontMatter` (`--front-matter` or `-M`)** _{Object}_ Options passed directly to [gray-matter](https://github.com/jonschlinkert/gray-matter).
     -   **`chokidar` (`--chokidar` or `-C`)** _{Object}_ Options passed directly to [chokidar](https://github.com/paulmillr/chokidar).
 

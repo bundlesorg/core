@@ -1,5 +1,5 @@
 module.exports = {
-  input: 'test/fixtures/simple.md',
+  input: ['test/fixtures/simple.md'],
   bundlers: [
     (bundle = {}) => {
       // Return a promise to ensure this bundler always finishes first.
