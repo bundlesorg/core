@@ -2,8 +2,6 @@
 const fs = require('fs-extra')
 const bundle = require('../lib/bundles.js')
 const log = require('loglevel')
-
-// Set loglevel here so jest doesn't output anything.
 log.setLevel('silent')
 
 const simpleBundle = require('../.bundlesrc.js')
@@ -331,7 +329,7 @@ test('run with global and local `data`', () => {
   })
 })
 
-test('run with `input` as String and no `content`', () => {
+test('run with `input` as String', () => {
   expect.assertions(2)
   return bundle({ bundles: [{
     input: 'test/fixtures/simple.md',
@@ -339,19 +337,6 @@ test('run with `input` as String and no `content`', () => {
   }] }).then(result => {
     expect(result.bundles[0].output[0].content).toBe('# Simple Test\n\nThis is a test.\n')
     expect(result.bundles[0].output[0].source.path).toBe('test/fixtures/simple.md')
-  })
-})
-
-test('run with `input` as String and `content`', () => {
-  expect.assertions(2)
-  const content = '# I am content\n\nSee me roar.\n'
-  return bundle({ bundles: [{
-    input: 'test.md',
-    content,
-    bundlers: [bundle => bundle]
-  }] }).then(result => {
-    expect(result.bundles[0].output[0].content).toBe(content)
-    expect(result.bundles[0].output[0].source.path).toBe('test.md')
   })
 })
 
