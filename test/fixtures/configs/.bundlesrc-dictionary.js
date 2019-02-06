@@ -1,6 +1,5 @@
 module.exports = {
-  bundles: [{
-    id: 'bundle1',
+  bundle1: {
     input: './test/fixtures/simple.md',
     bundlers: [
       (bundle = {}) => {
@@ -19,12 +18,11 @@ module.exports = {
         return bundle
       }
     ]
-  }, {
-    id: 'bundle2',
+  },
+  bundle2: {
     input: './test/fixtures/simple.md',
     bundlers: [appendNewLineBundler, { run: addPropBundler, prop: 'test', value: 'ing' }]
-  }]
-}
+  } }
 
 function appendNewLineBundler (bundle = {}, bundler = {}) {
   return new Promise((resolve) => {

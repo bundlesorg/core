@@ -12,7 +12,7 @@ afterEach(() => {
 
 test('run from command line', (done) => {
   expect.assertions(2)
-  exec(`node ${cliPath} ./test/fixtures/configs/.cli-bundlesrc.js --bundles=bundle2`, (error, stdout, stderr) => {
+  exec(`node ${cliPath} --config=test/fixtures/configs/.cli-bundlesrc.js --run=bundle2`, (error, stdout, stderr) => {
     if (error) return error
     expect(fs.readFileSync('.temp/test/fixtures/simple.md', 'utf8')).toBe(fs.readFileSync('./test/fixtures/simple.md', 'utf8') + '\n')
     expect(fs.pathExistsSync('.temp/test/fixtures/bundlers/add-prop.js', 'utf8')).toBe(false)
