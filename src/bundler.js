@@ -4,9 +4,9 @@
 // Imports and setup.
 //
 
-const path = require('path')
-const result = require('./result')
-const _ = require('./utilities')
+import path from 'path'
+import result from './result'
+import _ from './utilities'
 
 // -------------------------------------------------------------------------------------------------
 // Bundler constructor and prototype.
@@ -59,4 +59,4 @@ function Bundler (bundler = {}) {
 // Exports.
 //
 
-module.exports = Bundler
+export default Bundler

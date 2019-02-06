@@ -4,11 +4,12 @@
 // Imports and setup.
 //
 
-const globby = require('globby')
-const path = require('path')
-const fs = require('fs-extra')
-const matter = require('gray-matter')
-const _ = require('./utilities.js')
+import globby from 'globby'
+import path from 'path'
+import fs from 'fs-extra'
+import matter from 'gray-matter'
+import childProcess from 'child_process'
+import _ from './utilities'
 
 // -------------------------------------------------------------------------------------------------
 // File constructor.
@@ -117,7 +118,7 @@ function resolveGitRepo (input = '', options = {}) {
   localPath = path.join('.repos', path.basename(localPath.dir).replace(':', '-').replace('git@', ''), localPath.name)
 
   // Clone repo.
-  const exec = require('child_process').execSync
+  const exec = childProcess.execSync
   fs.ensureDirSync('.repos')
   fs.removeSync(localPath)
   exec(`git clone ${input} ${localPath}`)
@@ -133,4 +134,4 @@ function resolveGitRepo (input = '', options = {}) {
 File.create = createFiles
 File.setGlobals = setGlobals
 
-module.exports = File
+export default File

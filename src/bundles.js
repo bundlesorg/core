@@ -4,12 +4,13 @@
 // Imports and setup.
 //
 
-const log = require('loglevel')
-const fs = require('fs-extra')
-const path = require('path')
-const result = require('./result')
-const _ = require('./utilities')
-const Bundle = require('./bundle')
+import log from 'loglevel'
+import fs from 'fs-extra'
+import path from 'path'
+import result from './result.js'
+import _ from './utilities.js'
+import Bundle from './bundle.js'
+import cosmiconfig from 'cosmiconfig'
 
 // -------------------------------------------------------------------------------------------------
 // Bundles.
@@ -124,17 +125,17 @@ function parseConfig (bundles = '', options = {}) {
  * @return {Object|undefined|Error}  Configuration Object, undefined, or Error.
  */
 function resolveConfigFile (filepath = '') {
-  const cosmiconfig = require('cosmiconfig')('bundles')
+  const config = cosmiconfig('bundles')
   let configFile
 
   // If filepath === '', search for a default config file.
   if (!filepath) {
-    configFile = cosmiconfig.searchSync('')
+    configFile = config.searchSync('')
     log.info(`Found config file: ${path.relative(process.cwd(), configFile.filepath)}`)
   // If filepath exists, load that specific file.
   } else if (typeof filepath === 'string') {
     if (!fs.pathExistsSync(filepath)) return configFile
-    configFile = cosmiconfig.loadSync(filepath)
+    configFile = config.loadSync(filepath)
   }
 
   return configFile
@@ -172,4 +173,4 @@ function createBundles (bundles = []) {
 Bundles.run = Bundles
 Bundles.result = result
 
-module.exports = Bundles
+export default Bundles

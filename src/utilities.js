@@ -21,7 +21,7 @@ function existsInArray (string = '', values) {
   return values.includes(string)
 }
 
-module.exports = {
+export default {
   isObject,
   existsInArray
 }

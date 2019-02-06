@@ -1,6 +1,6 @@
 /*! result.js | @author brikcss <https://github.com/brikcss> | @reference https://github.com/brikcss/bundles-core */
 
-const log = require('loglevel')
+import log from 'loglevel'
 const result = {
   success: false,
   errors: [],
@@ -82,4 +82,4 @@ const result = {
   }
 }
 
-module.exports = result
+export default result

@@ -1,13 +1,14 @@
-#! /usr/bin/env node
 /*! bundles-cli.js | @author brikcss <https://github.com/brikcss> | @reference https://github.com/brikcss/bundles */
 
 // -------------------------------------------------------------------------------------------------
 // Set up environment.
 //
 
-const fs = require('fs-extra')
-const bundle = require('../lib/bundles.min.js')
-const config = require('minimist')(process.argv.slice(2), {
+import fs from 'fs-extra'
+import bundle from '../module/bundles.js'
+import minimist from 'minimist'
+
+const config = minimist(process.argv.slice(2), {
   boolean: true,
   alias: {
     config: 'C',

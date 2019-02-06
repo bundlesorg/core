@@ -4,14 +4,14 @@
 // Imports and environment setup.
 //
 
-const log = require('loglevel')
-const merge = require('@brikcss/merge')
-const path = require('path')
-const result = require('./result')
-const Bundles = require('./bundles')
-const Bundler = require('./bundler')
-const File = require('./file')
-const _ = require('./utilities')
+import log from 'loglevel'
+import merge from '@brikcss/merge'
+import path from 'path'
+import chokidar from 'chokidar'
+import result from './result.js'
+import Bundler from './bundler.js'
+import File from './file.js'
+import _ from './utilities.js'
 
 // Cache next id for bundles that don't have an ID already.
 let nextId = 0
@@ -78,7 +78,6 @@ Bundle.prototype = {
     }
 
     // Return a promise.
-    const chokidar = require('chokidar')
     return new Promise((resolve, reject) => {
       bundle.watcher = chokidar.watch(bundle.input, bundle.options.chokidar)
       bundle.watcher
@@ -95,7 +94,7 @@ Bundle.prototype = {
             new File(filepath, { options: bundle.options })
           )
           // Run bundle.
-          return Bundles.run(bundle, true)
+          return bundle.run(bundle)
         })
         .on('error', reject)
         .on('ready', () => {
@@ -238,4 +237,4 @@ function resolveFiles (input = []) {
 
 Bundle.setDefaults = setDefaults
 
-module.exports = Bundle
+export default Bundle

@@ -1,6 +1,6 @@
 {
   "name": "@bundles/core",
-  "version": "0.2.5",
+  "version": "0.3.0",
   "description": "Bundles is a file bundler -- similar to [WebPack](https://webpack.js.org/), [RollupJS](http://rollupjs.org), [Parcel](https://parceljs.org/), [PostCSS](https://postcss.org/), etc. -- **but for anything**. The main difference between Bundles and other bundlers is that while other bundlers compile to a specific type of output (like JavaScript, CSS, etc.), Bundles can compile to anything.",
   "keywords": ["brikcss", "bundles", "bundler", "build", "compiler", "transpiler", "task runner"],
   "license": "MIT",
@@ -14,28 +14,34 @@
   "bugs": {
     "url": "https://github.com/brikcss/bundles/issues"
   },
-  "files": ["lib", "bin"],
-  "main": "./lib/bundles.min.js",
+  "files": ["lib", "module", "bin"],
+  "main": "./lib/bundles.js",
   "bin": {
-    "bundle": "./bin/bundles.min.js"
+    "bundle": "./bin/bundles.js"
   },
+  "module": "./module/bundles.js",
   "publishConfig": {
     "tag": "dev",
     "access": "public"
   },
   "scripts": {
     "start": "npm run watch",
+    "pretest": "npm run build",
     "test": "standard *.js && jest --config .jestrc.js --coverage && cat coverage/lcov.info | codacy-coverage && cat coverage/lcov.info | coveralls",
     "unit": "jest --config .jestrc.js",
-    "watch": "jest --config .jestrc.js --watchAll"
+    "watch": "npx concurrently \"jest --config .jestrc.js --watchAll\" \"npm run build -- --watch\"",
+    "prebuild": "npx rimraf {browser,lib,module,umd}",
+    "build": "rollup --config=.rolluprc.js"
   },
   "devDependencies": {
+    "@babel/preset-env": "^7.3.1",
     "@brikcss/git-hooks": "^2.1.0",
-    "@node-minify/cli": "^4.1.0",
-    "@node-minify/uglify-es": "^4.0.5",
     "codacy-coverage": "^3.3.0",
     "coveralls": "^3.0.2",
     "jest": "^24.0.0",
+    "rollup": "^1.1.2",
+    "rollup-plugin-babel": "^4.3.2",
+    "rollup-plugin-terser": "^4.0.4",
     "semantic-release": "^15.12.0"
   },
   "dependencies": {
