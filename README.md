@@ -33,7 +33,7 @@ Bundles is a file bundler, similar to [WebPack](https://webpack.js.org/), [Rollu
 
 | Node | CLI | ES Module | Browser | UMD |
 | :--: | :-: | :-------: | :-----: | :-: |
-|  ✓   |  ✓  |     x     |    x    |  x  |
+|  ✓   |  ✓  |     ✓     |    x    |  x  |
 
 ## Terminology
 

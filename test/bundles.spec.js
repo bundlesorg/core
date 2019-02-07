@@ -431,6 +431,40 @@ test('run with global and local `data`', () => {
   })
 })
 
+test('run with data as a function', () => {
+  expect.assertions(2)
+  return bundle({ bundles: [{
+    input: ['test/fixtures/simple.md'],
+    bundlers: [bundle => bundle]
+  }, {
+    input: ['test/fixtures/front-matter.md'],
+    data (file) {
+      return {
+        local: true,
+        winner: 'local'
+      }
+    },
+    bundlers: [bundle => bundle]
+  }],
+  data (file) {
+    return {
+      global: true,
+      winner: 'global'
+    }
+  } }).then(result => {
+    console.log('DATA:', result.bundles[0].output[0].data)
+    expect(result.bundles[0].output[0].data).toMatchObject({
+      global: true,
+      winner: 'global'
+    })
+    expect(result.bundles[1].output[0].data).toMatchObject({
+      local: true,
+      matter: true,
+      winner: 'local'
+    })
+  })
+})
+
 test('run with `input` as String', () => {
   expect.assertions(2)
   return bundle({ bundles: [{

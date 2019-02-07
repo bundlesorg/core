@@ -37,7 +37,10 @@ function File (input = '', { options = {} } = {}) {
 
   // Set output props and merge data.
   file.content = file.source.content
-  file.data = Object.assign({}, file.source.data, this.data)
+  file.data = Object.assign({},
+    file.source.data,
+    typeof this.data === 'function' ? this.data(file) : this.data
+  )
 
   // Return file object.
   return file

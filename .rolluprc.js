@@ -1,4 +1,4 @@
-/*! .rolluprc.js | @author brikcss <https://github.com/brikcss> | @reference <https://jest.io> */
+/*! .rolluprc.js | @author brikcss <https://github.com/brikcss> | @reference <https://rollupjs.org> */
 
 // -------------------------------------------------------------------------------------------------
 // Imports and setup.
@@ -15,6 +15,7 @@ const isProd = process.env.NODE_ENV === 'production' || process.env.NODE_ENV ===
 const base = {
   input: 'src/bundles.js',
   cliInput: 'src/cli.js',
+  external: [...Object.keys(pkg.dependencies), 'path', 'fs-extra', 'child_process'],
   watch: {
     chokidar: true,
     include: 'src/**',
@@ -31,6 +32,7 @@ let configs = []
 
 configs.push({
   input: base.input,
+  external: base.external,
   output: [
     // CommonJS for Node.
     {
@@ -55,6 +57,7 @@ configs.push({
   watch: base.watch
 }, {
   input: base.cliInput,
+  external: base.external,
   output: [
     // CommonJS for Node.
     {

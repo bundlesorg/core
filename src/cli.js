@@ -5,8 +5,8 @@
 //
 
 import fs from 'fs-extra'
-import bundle from '../module/bundles.js'
 import minimist from 'minimist'
+import bundle from '../module/bundles.js'
 
 const config = minimist(process.argv.slice(2), {
   boolean: true,

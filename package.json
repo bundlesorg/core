@@ -1,6 +1,6 @@
 {
   "name": "@bundles/core",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Bundles is a file bundler -- similar to [WebPack](https://webpack.js.org/), [RollupJS](http://rollupjs.org), [Parcel](https://parceljs.org/), [PostCSS](https://postcss.org/), etc. -- **but for anything**. The main difference between Bundles and other bundlers is that while other bundlers compile to a specific type of output (like JavaScript, CSS, etc.), Bundles can compile to anything.",
   "keywords": ["brikcss", "bundles", "bundler", "build", "compiler", "transpiler", "task runner"],
   "license": "MIT",
@@ -30,7 +30,7 @@
     "test": "standard *.js && jest --config .jestrc.js --coverage && cat coverage/lcov.info | codacy-coverage && cat coverage/lcov.info | coveralls",
     "unit": "jest --config .jestrc.js",
     "watch": "npx concurrently \"jest --config .jestrc.js --watchAll\" \"npm run build -- --watch\"",
-    "prebuild": "npx rimraf {browser,lib,module,umd}",
+    "prebuild": "npx rimraf {lib,bin,module}",
     "build": "rollup --config=.rolluprc.js"
   },
   "devDependencies": {
