@@ -57,7 +57,7 @@ configs.push({
   watch: base.watch
 }, {
   input: base.cliInput,
-  external: base.external,
+  external: base.external.concat(['../lib/bundles.js']),
   output: [
     // CommonJS for Node.
     {

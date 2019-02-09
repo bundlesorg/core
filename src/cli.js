@@ -6,7 +6,7 @@
 
 import fs from 'fs-extra'
 import minimist from 'minimist'
-import bundle from '../module/bundles.js'
+import bundle from '../lib/bundles.js'
 
 const config = minimist(process.argv.slice(2), {
   boolean: true,
