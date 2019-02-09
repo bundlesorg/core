@@ -38,8 +38,11 @@ if (config.data && fs.pathExistsSync(config.data)) {
 // Run bundles.
 //
 
-bundle(config.config || {
+// Create bundles.
+const bundles = config._ && config._.length ? {
   input: config._,
   bundlers: config.bundlers,
   data: config.data
-}, config)
+} : config.config || ''
+// Run it.
+bundle(bundles, config)
