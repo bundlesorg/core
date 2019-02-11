@@ -452,7 +452,6 @@ test('run with data as a function', () => {
       winner: 'global'
     }
   } }).then(result => {
-    console.log('DATA:', result.bundles[0].output[0].data)
     expect(result.bundles[0].output[0].data).toMatchObject({
       global: true,
       winner: 'global'

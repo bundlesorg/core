@@ -63,7 +63,6 @@ const result = {
     })
 
     // Set new options.
-    // console.log('RESULT BEFORE:', result.config)
     result.config = Object.assign(result.config || {
       path: undefined,
       run: false,
@@ -75,7 +74,6 @@ const result = {
       frontMatter: {},
       chokidar: {}
     }, value)
-    // console.log('RESULT AFTER:', result.config)
 
     // Return result.
     return result

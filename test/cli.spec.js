@@ -20,6 +20,17 @@ test('run from command line', (done) => {
   })
 })
 
+test('auto detect config file', (done) => {
+  expect.assertions(3)
+  exec(`node ${cliPath}`, (error, stdout, stderr) => {
+    if (error) return error
+    expect(error).toBe(null)
+    expect(stdout).toMatch(/Found config file: .bundlesrc.js/)
+    expect(stdout).toMatch(/\[ok\] Success!/)
+    done()
+  })
+})
+
 // test.skip('run with `--config=true` and `--cwd=<path>`', (done) => {
 //   exec(`node ${cliPath} --config --cwd=./test/fixtures/configs`, (error, stdout, stderr) => {
 //     if (error) return error
