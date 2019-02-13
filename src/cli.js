@@ -6,9 +6,9 @@
 
 import fs from 'fs-extra'
 import minimist from 'minimist'
-import bundle from '../lib/bundles.js'
+import bundles from '../lib/bundles.js'
 
-const config = minimist(process.argv.slice(2), {
+const globalOptions = minimist(process.argv.slice(2), {
   boolean: true,
   alias: {
     config: 'C',
@@ -26,12 +26,12 @@ const config = minimist(process.argv.slice(2), {
 // Parse object properties to an Object.
 const objectProps = ['glob', 'frontMatter', 'chokidar']
 objectProps.forEach(prop => {
-  if (config[prop]) config[prop] = JSON.parse(config[prop])
+  if (globalOptions[prop]) globalOptions[prop] = JSON.parse(globalOptions[prop])
 })
 
 // Grab data file if exists.
-if (config.data && fs.pathExistsSync(config.data)) {
-  config.data = require(config.data)
+if (globalOptions.data && fs.pathExistsSync(globalOptions.data)) {
+  globalOptions.data = require(globalOptions.data)
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -39,10 +39,10 @@ if (config.data && fs.pathExistsSync(config.data)) {
 //
 
 // Create bundles.
-const bundles = config._ && config._.length ? {
-  input: config._,
-  bundlers: config.bundlers,
-  data: config.data
-} : config.config || ''
+const bundlesConfig = globalOptions._ && globalOptions._.length ? {
+  input: globalOptions._,
+  bundlers: globalOptions.bundlers,
+  data: globalOptions.data
+} : globalOptions.config || ''
 // Run it.
-bundle(bundles, config)
+bundles(bundlesConfig, globalOptions)
