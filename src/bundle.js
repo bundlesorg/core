@@ -26,6 +26,21 @@ let nextId = 0
  */
 Bundle.prototype = {
   /**
+   * Default optoins.
+   * @type {Object}
+   */
+  defaults: {
+    path: undefined,
+    run: true,
+    watch: false,
+    loglevel: 'info',
+    glob: {
+      dot: true
+    },
+    frontMatter: {},
+    chokidar: {}
+  },
+  /**
    * Run a single bundle.
    * @return {Object}  Compiled bundle.
    */
@@ -128,7 +143,7 @@ function Bundle (bundle = {}) {
     input: [],
     output: [],
     bundlers: [],
-    options: {},
+    options: this.defaults,
     data: this.data,
     watcher: false,
     on: {},
