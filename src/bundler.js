@@ -5,7 +5,7 @@
 //
 
 import path from 'path'
-import result from './result'
+import log from 'loglevel'
 import _ from './utilities'
 
 // -------------------------------------------------------------------------------------------------
@@ -42,7 +42,7 @@ function Bundler (bundler = {}) {
     bundler.run = require(bundler.run)
   } catch (error) {
     bundler._meta.valid = false
-    result.errors.push(error)
+    log.error(error)
     return bundler
   }
 

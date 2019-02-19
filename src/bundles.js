@@ -9,7 +9,6 @@ import fs from 'fs-extra'
 import path from 'path'
 import cosmiconfig from 'cosmiconfig'
 import merge from '@brikcss/merge'
-import result from './result.js'
 import _ from './utilities.js'
 import Bundle from './bundle.js'
 
@@ -17,8 +16,43 @@ import Bundle from './bundle.js'
 // Bundles.
 //
 
+Bundles.run = Bundles
+Bundles.result = {
+  success: false,
+  watching: false,
+  bundles: [],
+  bundlesMap: []
+}
+
+/**
+ * Log results to console.
+ * @param   {Object[]}  bundles
+ * @return  {Object}  Result Object.
+ */
+Bundles.report = (bundles) => {
+  // Reset success.
+  Bundles.result.success = true
+
+  // Cache bundle results.
+  Bundles.result.bundles = bundles
+
+  // Iterate through bundles and create a bundlesMap...
+  Bundles.result.bundlesMap = Bundles.result.bundles.reduce((bundlesMap, bundle, i) => {
+    // Check for success of each bundle/bundler.
+    if (!bundle._meta.valid || !bundle.success) Bundles.result.success = false
+    // Create mapped bundle.
+    bundlesMap[bundle.id] = Bundles.result.bundles[i]
+    return bundlesMap
+  }, {})
+
+  // Log results.
+  log.info(Bundles.result.success ? '[ok] Success!' : '[!!] Failed. Check errors.')
+
+  // Return result.
+  return Bundles.result
+}
+
 function Bundles (bundles, options = {}) {
-  Bundles.result.config = options
   return parseConfig(bundles, options)
     .then(runBundles)
     .catch(error => {
@@ -36,7 +70,7 @@ function Bundles (bundles, options = {}) {
 function runBundles (bundles = []) {
   if (_.isObject(bundles)) bundles = [bundles]
   // Map each bundle to a promise so they can run in parallel.
-  return Promise.all(bundles.map(bundle => bundle.run())).then(result.log)
+  return Promise.all(bundles.map(bundle => bundle.run())).then(Bundles.report)
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -73,7 +107,6 @@ function parseConfig (bundles = '', options = {}) {
       // Destructure configFile.
       bundles = configFile.config
       options.path = path.relative(process.cwd(), configFile.filepath)
-      Bundles.result.config.path = options.path
     }
 
     // If bundles is an Object, convert it to an Array of bundles.
@@ -130,7 +163,7 @@ function createBundlesFromArray (bundles = [], options = {}) {
   bundles = bundles.map((bundle, i) => {
     // The bundle must be an Object.
     if (!_.isObject(bundle)) {
-      Bundles.result.errors.push(`Bundle [${i}] was not added, it must be an Object.`)
+      log.error(`Bundle [${i}] was not added, it must be an Object.`)
       return { input: bundle, _meta: { valid: false } }
     }
     // Create and return the new Bundle.
@@ -171,8 +204,5 @@ function resolveConfigFile (filepath = '') {
 // -------------------------------------------------------------------------------------------------
 // Exports.
 //
-
-Bundles.run = Bundles
-Bundles.result = result
 
 export default Bundles

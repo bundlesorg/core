@@ -8,7 +8,6 @@ import log from 'loglevel'
 import merge from '@brikcss/merge'
 import path from 'path'
 import chokidar from 'chokidar'
-import result from './result.js'
 import Bundler from './bundler.js'
 import File from './file.js'
 import _ from './utilities.js'
@@ -74,20 +73,20 @@ Bundle.prototype = {
       }).then(bundle => {
         bundler.success = true
         return bundle
-      // If bundler errors out, mark as such and push the error.
+      // If bundler errors out, mark as such and log the error.
       }).catch(error => {
         bundler.success = false
-        result.errors.push(error)
+        log.error(error)
         return bundle
       })
     // A bundle is marked as successful if all bundlers successfully complete.
     }, Promise.resolve(bundle)).then(bundle => {
       bundle.success = bundle.bundlers.every(bundler => bundler.success)
       return bundle.watch()
-    // If a bundle errors out, mark it and push error.
+    // If a bundle errors out, mark it and log error.
     }).catch(error => {
       bundle.success = false
-      result.errors.push(error)
+      log.error(error)
       return bundle
     })
   },
@@ -113,8 +112,6 @@ Bundle.prototype = {
           if (!bundle._meta.watching) return
           // Log the file change.
           log.info(`File changed: ${path.relative(process.cwd(), filepath)}`)
-          // Clear previous errors.
-          result.errors = []
           // Read in changed source file.
           bundle.outputMap[filepath] = Object.assign(
             bundle.outputMap[filepath],

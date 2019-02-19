@@ -33,13 +33,12 @@ test('fail if `bundles` is a String and config doesn\'t exist', () => {
 })
 
 test('run single bundle with simple Object', () => {
-  expect.assertions(16)
+  expect.assertions(15)
   return bundles({
     input: 'test/fixtures/simple.md',
     bundlers: [simpleBundle.bundlers[0], simpleBundle.bundlers[1]]
   }).then(result => {
     expect(result.success).toBe(true)
-    expect(result.errors).toEqual([])
     expect(result.watching).toBe(false)
     expect(result.bundles).toBeInstanceOf(Array)
     expect(result.bundles.length).toBe(1)
@@ -98,15 +97,11 @@ test('run multiple bundles with bundles Array', () => {
 })
 
 test('auto detect config file', () => {
-  expect.assertions(11)
+  expect.assertions(9)
   return bundles().then(result => {
     const bundle = result.bundles[0]
     expect(result.success).toBe(true)
-    expect(result.errors).toEqual([])
     expect(result.watching).toBe(false)
-    expect(result.config).toMatchObject({
-      path: '.bundlesrc.js'
-    })
     expect(result.bundles).toBeInstanceOf(Array)
     expect(result.bundles.length).toBe(1)
     expect(bundle.success).toBe(true)
@@ -134,15 +129,11 @@ test('auto detect config file', () => {
 })
 
 test('run config file which exports a config Object', () => {
-  expect.assertions(11)
+  expect.assertions(9)
   return bundles('.bundlesrc.js').then(result => {
     const bundle = result.bundles[0]
     expect(result.success).toBe(true)
-    expect(result.errors).toEqual([])
     expect(result.watching).toBe(false)
-    expect(result.config).toMatchObject({
-      path: '.bundlesrc.js'
-    })
     expect(result.bundles).toBeInstanceOf(Array)
     expect(result.bundles.length).toBe(1)
     expect(bundle.success).toBe(true)
@@ -170,14 +161,10 @@ test('run config file which exports a config Object', () => {
 })
 
 test('run config file which exports an Array of bundles', () => {
-  expect.assertions(11)
+  expect.assertions(9)
   return bundles('./test/fixtures/configs/.bundlesrc-array.js').then(result => {
     expect(result.success).toBe(true)
-    expect(result.errors).toEqual([])
     expect(result.watching).toBe(false)
-    expect(result.config).toMatchObject({
-      path: 'test/fixtures/configs/.bundlesrc-array.js'
-    })
     expect(result.bundles.length).toBe(2)
     const resultOne = result.bundles[0]
     const resultTwo = result.bundles[1]
@@ -205,14 +192,10 @@ test('run config file which exports an Array of bundles', () => {
 })
 
 test('run config file which exports an Object dictionary', () => {
-  expect.assertions(11)
+  expect.assertions(9)
   return bundles('./test/fixtures/configs/.bundlesrc-dictionary.js').then(result => {
     expect(result.success).toBe(true)
-    expect(result.errors).toEqual([])
     expect(result.watching).toBe(false)
-    expect(result.config).toMatchObject({
-      path: 'test/fixtures/configs/.bundlesrc-dictionary.js'
-    })
     expect(result.bundles.length).toBe(2)
     const resultOne = result.bundles[0]
     const resultTwo = result.bundles[1]
