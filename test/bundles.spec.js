@@ -1,6 +1,6 @@
 /* eslint-env jest */
 const fs = require('fs-extra')
-const bundle = require('../lib/bundles.js')
+const bundles = require('../lib/bundles.js')
 const log = require('loglevel')
 log.setLevel('silent')
 
@@ -29,21 +29,22 @@ afterEach(() => {
 
 test('fail if `bundles` is a String and config doesn\'t exist', () => {
   expect.assertions(1)
-  return expect(bundle('file/that/doesnt/exist.js')).resolves.toThrow()
+  return expect(bundles('file/that/doesnt/exist.js')).resolves.toThrow()
 })
 
 test('run single bundle with simple Object', () => {
   expect.assertions(16)
-  return bundle({
+  return bundles({
     input: 'test/fixtures/simple.md',
     bundlers: [simpleBundle.bundlers[0], simpleBundle.bundlers[1]]
   }).then(result => {
     expect(result.success).toBe(true)
     expect(result.errors).toEqual([])
     expect(result.watching).toBe(false)
-    expect(result.config).toMatchObject({
-      path: undefined,
-      run: false,
+    expect(result.bundles).toBeInstanceOf(Array)
+    expect(result.bundles.length).toBe(1)
+    expect(result.bundles[0].options).toMatchObject({
+      run: true,
       watch: false,
       loglevel: 'info',
       glob: {
@@ -52,8 +53,6 @@ test('run single bundle with simple Object', () => {
       frontMatter: {},
       chokidar: {}
     })
-    expect(result.bundles).toBeInstanceOf(Array)
-    expect(result.bundles.length).toBe(1)
     expect(Object.keys(result.bundlesMap).length).toBe(1)
     expect(result.bundlesMap['0']).toEqual(result.bundles[0])
     const bundle = result.bundles[0]
@@ -70,7 +69,7 @@ test('run single bundle with simple Object', () => {
 
 test('run multiple bundles with bundles Array', () => {
   expect.assertions(6)
-  return bundle([{
+  return bundles([{
     input: 'test/fixtures/simple.md',
     id: 'one',
     bundlers: [simpleBundle.bundlers[0], simpleBundle.bundlers[1]]
@@ -99,15 +98,21 @@ test('run multiple bundles with bundles Array', () => {
 })
 
 test('auto detect config file', () => {
-  expect.assertions(10)
-  return bundle().then(result => {
-    const resultBundle = result.bundles[0]
+  expect.assertions(11)
+  return bundles().then(result => {
+    const bundle = result.bundles[0]
     expect(result.success).toBe(true)
     expect(result.errors).toEqual([])
     expect(result.watching).toBe(false)
     expect(result.config).toMatchObject({
+      path: '.bundlesrc.js'
+    })
+    expect(result.bundles).toBeInstanceOf(Array)
+    expect(result.bundles.length).toBe(1)
+    expect(bundle.success).toBe(true)
+    expect(bundle.options).toMatchObject({
       path: '.bundlesrc.js',
-      run: false,
+      run: true,
       watch: false,
       loglevel: 'info',
       glob: {
@@ -116,12 +121,9 @@ test('auto detect config file', () => {
       frontMatter: {},
       chokidar: {}
     })
-    expect(result.bundles).toBeInstanceOf(Array)
-    expect(result.bundles.length).toBe(1)
-    expect(resultBundle.success).toBe(true)
-    expect(resultBundle.bundlers).toBeInstanceOf(Array)
-    expect(resultBundle.bundlers.every(bundler => bundler.success && !bundler.error)).toBe(true)
-    expect(resultBundle).toMatchObject({
+    expect(bundle.bundlers).toBeInstanceOf(Array)
+    expect(bundle.bundlers.every(bundler => bundler.success && !bundler.error)).toBe(true)
+    expect(bundle).toMatchObject({
       success: true,
       input: ['test/fixtures/simple.md'],
       id: 0,
@@ -132,15 +134,21 @@ test('auto detect config file', () => {
 })
 
 test('run config file which exports a config Object', () => {
-  expect.assertions(10)
-  return bundle('.bundlesrc.js').then(result => {
-    const resultBundle = result.bundles[0]
+  expect.assertions(11)
+  return bundles('.bundlesrc.js').then(result => {
+    const bundle = result.bundles[0]
     expect(result.success).toBe(true)
     expect(result.errors).toEqual([])
     expect(result.watching).toBe(false)
     expect(result.config).toMatchObject({
+      path: '.bundlesrc.js'
+    })
+    expect(result.bundles).toBeInstanceOf(Array)
+    expect(result.bundles.length).toBe(1)
+    expect(bundle.success).toBe(true)
+    expect(bundle.options).toMatchObject({
       path: '.bundlesrc.js',
-      run: false,
+      run: true,
       watch: false,
       loglevel: 'info',
       glob: {
@@ -149,12 +157,9 @@ test('run config file which exports a config Object', () => {
       frontMatter: {},
       chokidar: {}
     })
-    expect(result.bundles).toBeInstanceOf(Array)
-    expect(result.bundles.length).toBe(1)
-    expect(resultBundle.success).toBe(true)
-    expect(resultBundle.bundlers).toBeInstanceOf(Array)
-    expect(resultBundle.bundlers.every(bundler => bundler.success && !bundler.error)).toBe(true)
-    expect(resultBundle).toMatchObject({
+    expect(bundle.bundlers).toBeInstanceOf(Array)
+    expect(bundle.bundlers.every(bundler => bundler.success && !bundler.error)).toBe(true)
+    expect(bundle).toMatchObject({
       success: true,
       input: ['test/fixtures/simple.md'],
       id: 0,
@@ -165,14 +170,20 @@ test('run config file which exports a config Object', () => {
 })
 
 test('run config file which exports an Array of bundles', () => {
-  expect.assertions(10)
-  return bundle('./test/fixtures/configs/.bundlesrc-array.js').then(result => {
+  expect.assertions(11)
+  return bundles('./test/fixtures/configs/.bundlesrc-array.js').then(result => {
     expect(result.success).toBe(true)
     expect(result.errors).toEqual([])
     expect(result.watching).toBe(false)
     expect(result.config).toMatchObject({
+      path: 'test/fixtures/configs/.bundlesrc-array.js'
+    })
+    expect(result.bundles.length).toBe(2)
+    const resultOne = result.bundles[0]
+    const resultTwo = result.bundles[1]
+    expect(resultOne.options).toMatchObject({
       path: 'test/fixtures/configs/.bundlesrc-array.js',
-      run: false,
+      run: true,
       watch: false,
       loglevel: 'info',
       glob: {
@@ -181,9 +192,6 @@ test('run config file which exports an Array of bundles', () => {
       frontMatter: {},
       chokidar: {}
     })
-    expect(result.bundles.length).toBe(2)
-    const resultOne = result.bundles[0]
-    const resultTwo = result.bundles[1]
     expect(resultOne.bundlers.length).toBe(2)
     expect(resultOne).toMatchObject({
       success: true,
@@ -197,14 +205,21 @@ test('run config file which exports an Array of bundles', () => {
 })
 
 test('run config file which exports an Object dictionary', () => {
-  expect.assertions(10)
-  return bundle('./test/fixtures/configs/.bundlesrc-dictionary.js').then(result => {
+  expect.assertions(11)
+  return bundles('./test/fixtures/configs/.bundlesrc-dictionary.js').then(result => {
     expect(result.success).toBe(true)
     expect(result.errors).toEqual([])
     expect(result.watching).toBe(false)
     expect(result.config).toMatchObject({
+      path: 'test/fixtures/configs/.bundlesrc-dictionary.js'
+    })
+    expect(result.bundles.length).toBe(2)
+    const resultOne = result.bundles[0]
+    const resultTwo = result.bundles[1]
+    expect(resultOne.bundlers.length).toBe(2)
+    expect(resultOne.options).toMatchObject({
       path: 'test/fixtures/configs/.bundlesrc-dictionary.js',
-      run: false,
+      run: true,
       watch: false,
       loglevel: 'info',
       glob: {
@@ -213,10 +228,6 @@ test('run config file which exports an Object dictionary', () => {
       frontMatter: {},
       chokidar: {}
     })
-    expect(result.bundles.length).toBe(2)
-    const resultOne = result.bundles[0]
-    const resultTwo = result.bundles[1]
-    expect(resultOne.bundlers.length).toBe(2)
     expect(resultOne).toMatchObject({
       success: true,
       testing: 'test',
@@ -230,7 +241,7 @@ test('run config file which exports an Object dictionary', () => {
 
 test('run with bundlers as a String (node modules)', () => {
   expect.assertions(6)
-  return bundle({ bundles: [{
+  return bundles({ bundles: [{
     input: ['test/fixtures/simple.md'],
     bundlers: ['./test/fixtures/bundlers/append-new-line.js', { run: './test/fixtures/bundlers/add-prop.js', prop: 'test', value: 123 }]
   }] }).then(result => {
@@ -249,7 +260,7 @@ test('run with bundlers as a String (node modules)', () => {
 
 test('skip invalid bundles and bundlers', () => {
   expect.assertions(22)
-  return bundle({ bundles: [{
+  return bundles({ bundles: [{
     id: 'one',
     input: ['test/fixtures/simple.md'],
     bundlers: ['./test/fixtures/bundlers/append-new-lines.js', { run: './test/fixtures/bundlers/add-props.js', prop: 'test', value: 123 }]
@@ -315,7 +326,7 @@ test('run only specified bundles', () => {
     id: 'three',
     bundlers: ['./test/fixtures/bundlers/append-new-line.js', { run: './test/fixtures/bundlers/add-prop.js', prop: 'test', value: 123 }]
   })]
-  return bundle({ bundles: config }, { run: ['two'] }).then(result => {
+  return bundles({ bundles: config }, { run: ['two'] }).then(result => {
     expect(result.success).toBe(true)
     expect(result.bundles.length).toBe(3)
 
@@ -340,70 +351,9 @@ test('run only specified bundles', () => {
   })
 })
 
-// Only run this test if it's not the CI.
-test('run and watch for changes', () => {
-  expect.assertions(9)
-  fs.outputFileSync('./.temp/temp.md', '# I have short life...\n\n...but it was good life.\n')
-  fs.outputFileSync('./.temp/simple.md', '# I am simple...\n\n...but also complex.\n')
-  return bundle({ bundles: [{
-    id: 'one',
-    input: ['./.temp/simple.md', './.temp/temp.md'],
-    bundlers: [simpleBundle.bundlers[0], simpleBundle.bundlers[1]]
-  }] }, { watch: true }).then(result => {
-    // Check that all is well with initial build.
-    const bundle = result.bundles[0]
-    expect(result.success).toBe(true)
-    expect(result.bundles).toBeInstanceOf(Array)
-    expect(result.bundles.length).toBe(1)
-    expect(bundle.success).toBe(true)
-    expect(bundle.bundlers).toBeInstanceOf(Array)
-    expect(bundle.bundlers.every(bundler => bundler.success && !bundler.error)).toBe(true)
-    expect(bundle).toMatchObject({
-      success: true,
-      input: ['.temp/simple.md', '.temp/temp.md'],
-      id: 'one',
-      testing: 'test',
-      array: [1, 2]
-    })
-    // Make sure watcher exists.
-    expect(bundle.watcher).toMatchObject({
-      _eventsCount: 3,
-      closed: false,
-      options: {}
-    })
-    bundle.watcher.unwatch()
-    bundle.watcher.close()
-    expect(bundle.watcher.closed).toBe(true)
-    fs.removeSync('.temp')
-  })
-})
-
-// Only run if $GH_TOKEN exists.
-if (process.env.GH_TOKEN) {
-  test('run with a github repo as the source input', () => {
-    expect.assertions(3)
-    return bundle({ bundles: [{
-      input: [`https://${process.env.GH_TOKEN}@github.com/thezimmee/test.git`, `gh:${process.env.GH_TOKEN}@brikcss/boot-test`],
-      bundlers: [bundle => bundle]
-    }] }).then(result => {
-      expect(result.success).toBe(true)
-      expect(result.bundles.length).toBe(1)
-      expect(result.bundles[0]).toMatchObject({
-        success: true,
-        input: expect.arrayContaining([
-          '.repos/thezimmee/test/README.md',
-          '.repos/brikcss/boot-test/README.md',
-          '.repos/brikcss/boot-test/TODO.md.xjs',
-          '.repos/brikcss/boot-test/package.xjson'
-        ])
-      })
-    })
-  })
-}
-
 test('run with global and local `data`', () => {
   expect.assertions(2)
-  return bundle({ bundles: [{
+  return bundles({ bundles: [{
     input: ['test/fixtures/simple.md'],
     bundlers: [bundle => bundle]
   }, {
@@ -433,7 +383,7 @@ test('run with global and local `data`', () => {
 
 test('run with data as a function', () => {
   expect.assertions(2)
-  return bundle({ bundles: [{
+  return bundles({ bundles: [{
     input: ['test/fixtures/simple.md'],
     bundlers: [bundle => bundle]
   }, {
@@ -466,7 +416,7 @@ test('run with data as a function', () => {
 
 test('run with `input` as String', () => {
   expect.assertions(2)
-  return bundle({ bundles: [{
+  return bundles({ bundles: [{
     input: 'test/fixtures/simple.md',
     bundlers: [bundle => bundle]
   }] }).then(result => {
@@ -478,7 +428,7 @@ test('run with `input` as String', () => {
 test('run with `input` as Object', () => {
   expect.assertions(2)
   const content = '# I am content\n\nSee me roar.\n'
-  return bundle({ bundles: [{
+  return bundles({ bundles: [{
     input: {
       path: 'test.md',
       content
@@ -493,7 +443,7 @@ test('run with `input` as Object', () => {
 test('run with input as Array of Strings and Objects', () => {
   expect.assertions(4)
   const content = '# I am content\n\nSee me roar.\n'
-  return bundle([{
+  return bundles([{
     input: {
       path: 'test.md',
       content
@@ -509,3 +459,64 @@ test('run with input as Array of Strings and Objects', () => {
     expect(result.bundles[1].output[0].source.path).toBe('test/fixtures/simple.md')
   })
 })
+
+// Only run this test if it's not the CI.
+test('run and watch for changes', () => {
+  expect.assertions(9)
+  fs.outputFileSync('./.temp/temp.md', '# I have short life...\n\n...but it was good life.\n')
+  fs.outputFileSync('./.temp/simple.md', '# I am simple...\n\n...but also complex.\n')
+  return bundles({ bundles: [{
+    id: 'watch',
+    input: ['./.temp/simple.md', './.temp/temp.md'],
+    bundlers: [simpleBundle.bundlers[0], simpleBundle.bundlers[1]]
+  }] }, { watch: true }).then(result => {
+    // Check that all is well with initial build.
+    const bundle = result.bundles[0]
+    expect(result.success).toBe(true)
+    expect(result.bundles).toBeInstanceOf(Array)
+    expect(result.bundles.length).toBe(1)
+    expect(bundle.success).toBe(true)
+    expect(bundle.bundlers).toBeInstanceOf(Array)
+    expect(bundle.bundlers.every(bundler => bundler.success && !bundler.error)).toBe(true)
+    expect(bundle).toMatchObject({
+      success: true,
+      input: ['.temp/simple.md', '.temp/temp.md'],
+      id: 'watch',
+      testing: 'test',
+      array: [1, 2]
+    })
+    // Make sure watcher exists.
+    expect(bundle.watcher).toMatchObject({
+      _eventsCount: 3,
+      closed: false,
+      options: {}
+    })
+    bundle.watcher.unwatch()
+    bundle.watcher.close()
+    expect(bundle.watcher.closed).toBe(true)
+    fs.removeSync('.temp')
+  })
+})
+
+// Only run if $GH_TOKEN exists.
+if (process.env.GH_TOKEN) {
+  test('run with a github repo as the source input', () => {
+    expect.assertions(3)
+    return bundles({ bundles: [{
+      input: [`https://${process.env.GH_TOKEN}@github.com/thezimmee/test.git`, `gh:${process.env.GH_TOKEN}@brikcss/boot-test`],
+      bundlers: [bundle => bundle]
+    }] }).then(result => {
+      expect(result.success).toBe(true)
+      expect(result.bundles.length).toBe(1)
+      expect(result.bundles[0]).toMatchObject({
+        success: true,
+        input: expect.arrayContaining([
+          '.repos/thezimmee/test/README.md',
+          '.repos/brikcss/boot-test/README.md',
+          '.repos/brikcss/boot-test/TODO.md.xjs',
+          '.repos/brikcss/boot-test/package.xjson'
+        ])
+      })
+    })
+  })
+}

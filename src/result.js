@@ -7,17 +7,6 @@ const result = {
   watching: false,
   bundles: [],
   bundlesMap: [],
-  config: {
-    path: undefined,
-    run: false,
-    watch: false,
-    loglevel: 'info',
-    glob: {
-      dot: true
-    },
-    frontMatter: {},
-    chokidar: {}
-  },
   /**
    * Log results to console.
    * @param   {Object[]}  bundles
@@ -44,36 +33,6 @@ const result = {
     } else {
       log.info('[!!] Failed. Check errors.')
     }
-
-    // Return result.
-    return result
-  },
-  /**
-   * Update config Object.
-   * @param {Object} value
-   */
-  setConfig (value = {}) {
-    // Convert run and watch options to an Array.
-    ['run', 'watch'].forEach(key => {
-      if (value[key] && typeof value[key] === 'string') {
-        value[key] = value[key].split(/,?\s+/)
-      } else if (typeof value[key] !== 'boolean' && !(value[key] instanceof Array)) {
-        value[key] = value[key] || false
-      }
-    })
-
-    // Set new options.
-    result.config = Object.assign(result.config || {
-      path: undefined,
-      run: false,
-      watch: false,
-      loglevel: 'info',
-      glob: {
-        dot: true
-      },
-      frontMatter: {},
-      chokidar: {}
-    }, value)
 
     // Return result.
     return result

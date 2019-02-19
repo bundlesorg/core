@@ -15,6 +15,17 @@ import _ from './utilities.js'
 
 // Cache next id for bundles that don't have an ID already.
 let nextId = 0
+const defaults = {
+  path: undefined,
+  run: true,
+  watch: false,
+  loglevel: 'info',
+  glob: {
+    dot: true
+  },
+  frontMatter: {},
+  chokidar: {}
+}
 
 // -------------------------------------------------------------------------------------------------
 // Bundler constructor and prototype.
@@ -26,20 +37,15 @@ let nextId = 0
  */
 Bundle.prototype = {
   /**
-   * Default optoins.
+   * Default options.
    * @type {Object}
    */
-  defaults: {
-    path: undefined,
-    run: true,
-    watch: false,
-    loglevel: 'info',
-    glob: {
-      dot: true
-    },
-    frontMatter: {},
-    chokidar: {}
-  },
+  defaults,
+  /**
+   * Options to be merged with each new Bundle.
+   * @type {Object}
+   */
+  options: Object.assign({}, defaults),
   /**
    * Run a single bundle.
    * @return {Object}  Compiled bundle.
@@ -50,6 +56,12 @@ Bundle.prototype = {
     if (!bundle._meta.valid) {
       bundle.success = false
       return bundle
+    }
+
+    // Only continue if configured to do so.
+    if (!shouldContinue(bundle.options.run, bundle.id)) {
+      bundle.success = 'skipped'
+      return Promise.resolve(bundle)
     }
 
     // Log it.
@@ -71,7 +83,7 @@ Bundle.prototype = {
     // A bundle is marked as successful if all bundlers successfully complete.
     }, Promise.resolve(bundle)).then(bundle => {
       bundle.success = bundle.bundlers.every(bundler => bundler.success)
-      return result.config.watch ? bundle.watch(result.config.watch) : bundle
+      return bundle.watch()
     // If a bundle errors out, mark it and push error.
     }).catch(error => {
       bundle.success = false
@@ -83,17 +95,17 @@ Bundle.prototype = {
    * Watch bundle and recompile when source input changes.
    * @return {Object} Compiled bundle.
    */
-  watch (bundlesToWatch) {
+  watch () {
     const bundle = this
-
-    // Only watch if it's configured to be watched.
-    if (!bundlesToWatch || (bundlesToWatch instanceof Array && !bundlesToWatch.includes(bundle.id))) {
-      bundle._meta.watching = false
-      return bundle
-    }
 
     // Return a promise.
     return new Promise((resolve, reject) => {
+      // Only watch if it's configured to be watched.
+      if (!shouldContinue(bundle.options.watch, bundle.id)) {
+        bundle._meta.watching = false
+        return resolve(bundle)
+      }
+
       bundle.watcher = chokidar.watch(bundle.input, bundle.options.chokidar)
       bundle.watcher
         .on('change', (filepath) => {
@@ -128,7 +140,7 @@ Bundle.prototype = {
 
 /**
  * Bundle constructor.
- * @param {Object} bundle Bundle instance.
+ * @param {Object} bundle  Bundle instance.
  */
 function Bundle (bundle = {}) {
   //
@@ -143,8 +155,8 @@ function Bundle (bundle = {}) {
     input: [],
     output: [],
     bundlers: [],
-    options: this.defaults,
-    data: this.data,
+    options: {},
+    data: {},
     watcher: false,
     on: {},
     _meta: {
@@ -152,7 +164,7 @@ function Bundle (bundle = {}) {
       watching: false,
       configFile: undefined
     }
-  }, bundle], { arrayStrategy: 'overwrite' })
+  }, { options: this.options, data: this.data }, bundle], { arrayStrategy: 'overwrite' })
   // Convert input to an Array.
   if (typeof bundle.input === 'string' || _.isObject(bundle.input)) {
     bundle.input = [bundle.input]
@@ -207,19 +219,6 @@ function Bundle (bundle = {}) {
 //
 
 /**
- * Set default props for new Bundles.
- * @param {Object}  options  Global options.
- * @param {Object}  data  Global data.
- * @param {Boolean} merge  Whether to merge with existing props.
- */
-function setDefaults ({ options = {}, data = {} } = {}, merge = false) {
-  const proto = Bundle.prototype
-  proto.options = proto.options && merge ? merge(proto.options, options) : options
-  proto.data = proto.data && merge ? merge(proto.data, data) : data
-  return proto
-}
-
-/**
  * Resolve Files from an input Array.
  * @param  {Array}  input Array of paths or Objects to resolve.
  * @return {Object}       Result = { input, output, outputMap }
@@ -246,10 +245,19 @@ function resolveFiles (input = []) {
   }, result)
 }
 
+/**
+ * Determine if a bundle should continue, provided a Boolean or Array of Bundle IDs.
+ * @param  {Boolean|String[]|String}  value  Value to check for bundle.
+ * @param  {String} bundleId  Bundle ID to check against.
+ * @return {Boolean}  Whether bundle is included.
+ */
+function shouldContinue (value, bundleId) {
+  if (typeof value === 'string') value = value.split(/,?\s+/)
+  return !value || value === true || (value instanceof Array && value.includes(bundleId))
+}
+
 // -------------------------------------------------------------------------------------------------
 // Exports.
 //
-
-Bundle.setDefaults = setDefaults
 
 export default Bundle

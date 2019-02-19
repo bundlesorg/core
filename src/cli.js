@@ -44,5 +44,8 @@ const bundlesConfig = globalOptions._ && globalOptions._.length ? {
   bundlers: globalOptions.bundlers,
   data: globalOptions.data
 } : globalOptions.config || ''
+
 // Run it.
-bundles(bundlesConfig, globalOptions)
+bundles(bundlesConfig, globalOptions).then(result => {
+  process.exit()
+})
