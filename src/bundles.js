@@ -16,66 +16,30 @@ import Bundle from './bundle.js'
 // Bundles.
 //
 
-Bundles.run = Bundles
+Bundles.create = parseConfig
+Bundles.run = runBundles
+Bundles.report = logResults
 Bundles.result = {
   success: false,
   watching: false,
   bundles: [],
-  bundlesMap: []
+  bundlesMap: {}
 }
 
 /**
- * Log results to console.
- * @param   {Object[]}  bundles
- * @return  {Object}  Result Object.
+ * Main Bundles() function.
+ * @param {String|Object|Object[]} bundles  Bundles configuration.
+ * @param {Object} options  Runtime options.
  */
-Bundles.report = (bundles) => {
-  // Reset success.
-  Bundles.result.success = true
-
-  // Cache bundle results.
-  Bundles.result.bundles = bundles
-
-  // Iterate through bundles and create a bundlesMap...
-  Bundles.result.bundlesMap = Bundles.result.bundles.reduce((bundlesMap, bundle, i) => {
-    // Check for success of each bundle/bundler.
-    if (!bundle._meta.valid || !bundle.success) Bundles.result.success = false
-    // Create mapped bundle.
-    bundlesMap[bundle.id] = Bundles.result.bundles[i]
-    return bundlesMap
-  }, {})
-
-  // Log results.
-  log.info(Bundles.result.success ? '[ok] Success!' : '[!!] Failed. Check errors.')
-
-  // Return result.
-  return Bundles.result
-}
-
 function Bundles (bundles, options = {}) {
-  return parseConfig(bundles, options)
-    .then(runBundles)
+  return Bundles.create(bundles, options)
+    .then(Bundles.run)
+    .then(Bundles.report)
     .catch(error => {
       log.error(error)
       return error
     })
 }
-
-/**
- * Run one or multiple bundles.
- * @param  {Object|Object[]}  bundles  One or more bundles.
- * @param {String[]|Boolean} run  Array of bundle IDs to run. Or set true to force all to run.
- * @return {Array}  Compiled bundles.
- */
-function runBundles (bundles = []) {
-  if (_.isObject(bundles)) bundles = [bundles]
-  // Map each bundle to a promise so they can run in parallel.
-  return Promise.all(bundles.map(bundle => bundle.run())).then(Bundles.report)
-}
-
-// -------------------------------------------------------------------------------------------------
-// Helper functions.
-//
 
 /**
  * Parse bundles configuration.
@@ -121,6 +85,49 @@ function parseConfig (bundles = '', options = {}) {
 }
 
 /**
+ * Run configured bundles.
+ * @param  {Object[]} bundles  Array of configured bundles.
+ * @param  {Object} options  Runtime options.
+ * @return {Object[]}  Array of bundles.
+ */
+function runBundles (bundles, options) {
+  return Promise.all(bundles.map(bundle => bundle.run()))
+}
+
+/**
+ * Log results to console.
+ *
+ * @param   {Object[]}  bundles  Resulting bundle Objects.
+ * @return  {Object}  Bundles result Object.
+ */
+function logResults (bundles) {
+  // Reset success.
+  Bundles.result.success = true
+
+  // Cache bundle results.
+  Bundles.result.bundles = bundles
+
+  // Iterate through bundles and create a bundlesMap...
+  Bundles.result.bundlesMap = Bundles.result.bundles.reduce((bundlesMap, bundle, i) => {
+    // Check for success of each bundle/bundler.
+    if (!bundle._meta.valid || !bundle.success) Bundles.result.success = false
+    // Create mapped bundle.
+    bundlesMap[bundle.id] = Bundles.result.bundles[i]
+    return bundlesMap
+  }, {})
+
+  // Log results.
+  log.info(Bundles.result.success ? '[ok] Success!' : '[!!] Failed. Check errors.')
+
+  // Return result.
+  return Bundles.result
+}
+
+// -------------------------------------------------------------------------------------------------
+// Helper functions.
+//
+
+/**
  * Convert bundles from an Object to an Array.
  * @param  {Object}  bundles  User config Object.
  * @param  {Object} options  Global user options.
@@ -146,6 +153,8 @@ function convertBundlesToArray (bundles = {}, options = {}) {
     })
   }
 
+  // Return Array of bundles.
+  if (_.isObject(bundles)) bundles = [bundles]
   return bundles
 }
 
