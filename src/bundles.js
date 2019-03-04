@@ -49,6 +49,9 @@ function Bundles (bundles, options = {}) {
  */
 function parseConfig (bundles = '', options = {}) {
   return new Promise((resolve, reject) => {
+    // Set default cwd.
+    if (!options.cwd) options.cwd = process.cwd()
+
     // Set default log level (may get overridden by other log.setLevel() method).
     log.setDefaultLevel(
       ['trace', 'debug', 'info', 'warn', 'error', 'silent'].includes(options.loglevel)
@@ -65,12 +68,12 @@ function parseConfig (bundles = '', options = {}) {
       bundles = bundles[0]
 
       // Get the config file.
-      const configFile = resolveConfigFile(bundles)
+      const configFile = resolveConfigFile(bundles, options.cwd)
       if (!configFile) return reject(new Error(`Config file not found. ${bundles}`))
 
       // Destructure configFile.
       bundles = configFile.config
-      options.path = path.relative(process.cwd(), configFile.filepath)
+      options.path = path.relative(options.cwd, configFile.filepath)
     }
 
     // If bundles is an Object, convert it to an Array of bundles.
@@ -87,10 +90,9 @@ function parseConfig (bundles = '', options = {}) {
 /**
  * Run configured bundles.
  * @param  {Object[]} bundles  Array of configured bundles.
- * @param  {Object} options  Runtime options.
  * @return {Object[]}  Array of bundles.
  */
-function runBundles (bundles, options) {
+function runBundles (bundles) {
   return Promise.all(bundles.map(bundle => bundle.run()))
 }
 
@@ -191,16 +193,17 @@ function createBundlesFromArray (bundles = [], options = {}) {
 /**
  * Resolve config file.
  * @param  {String}  filepath  Path to config file.
+ * @param  {String}  cwd  Current working directory.
  * @return {Object|undefined|Error}  Configuration Object, undefined, or Error.
  */
-function resolveConfigFile (filepath = '') {
+function resolveConfigFile (filepath = '', cwd) {
   const config = cosmiconfig('bundles')
   let configFile
 
   // If filepath === '', search for a default config file.
   if (!filepath) {
     configFile = config.searchSync('')
-    log.info(`Found config file: ${path.relative(process.cwd(), configFile.filepath)}`)
+    log.info(`Found config file: ${path.relative(cwd || process.cwd(), configFile.filepath)}`)
   // If filepath exists, load that specific file.
   } else if (typeof filepath === 'string') {
     if (!fs.pathExistsSync(filepath)) return configFile

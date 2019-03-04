@@ -297,43 +297,6 @@ test('skip invalid bundles and bundlers', () => {
   })
 })
 
-test('run only specified bundles', () => {
-  expect.assertions(14)
-  const config = [createBundle({
-    id: 'one',
-    bundlers: ['./test/fixtures/bundlers/append-new-line.js', { run: './test/fixtures/bundlers/add-prop.js', prop: 'test', value: 1 }]
-  }), createBundle({
-    id: 'two',
-    bundlers: ['./test/fixtures/bundlers/append-new-line.js', { run: './test/fixtures/bundlers/add-prop.js', prop: 'test', value: 12 }]
-  }), createBundle({
-    id: 'three',
-    bundlers: ['./test/fixtures/bundlers/append-new-line.js', { run: './test/fixtures/bundlers/add-prop.js', prop: 'test', value: 123 }]
-  })]
-  return bundles({ bundles: config }, { run: ['two'] }).then(result => {
-    expect(result.success).toBe(true)
-    expect(result.bundles.length).toBe(3)
-
-    expect(result.bundles[0].id).toBe('one')
-    expect(result.bundles[1].id).toBe('two')
-    expect(result.bundles[2].id).toBe('three')
-
-    expect(result.bundlesMap.one.success).toBe('skipped')
-    expect(result.bundlesMap.two.success).toBe(true)
-    expect(result.bundlesMap.three.success).toBe('skipped')
-
-    expect(result.bundlesMap.one.test).toBe(undefined)
-    expect(result.bundlesMap.three.test).toBe(undefined)
-
-    expect(result.bundlesMap.two).toMatchObject({
-      success: true,
-      test: 12
-    })
-    expect(result.bundlesMap.two.output.length).toBe(1)
-    expect(result.bundlesMap.two.output[0].source.path).toBe('test/fixtures/simple.md')
-    expect(result.bundlesMap.two.output[0].content).toBe(result.bundles[0].output[0].source.content + '\n')
-  })
-})
-
 test('run with global and local `data`', () => {
   expect.assertions(2)
   return bundles({ bundles: [{
@@ -440,6 +403,66 @@ test('run with input as Array of Strings and Objects', () => {
     expect(result.bundles[0].output[0].source.path).toBe('test.md')
     expect(result.bundles[1].output[0].content).toBe('# Simple Test\n\nThis is a test.\n')
     expect(result.bundles[1].output[0].source.path).toBe('test/fixtures/simple.md')
+  })
+})
+
+test('run with options.run (run only specified bundles)', () => {
+  expect.assertions(14)
+  const config = [createBundle({
+    id: 'one',
+    bundlers: ['./test/fixtures/bundlers/append-new-line.js', { run: './test/fixtures/bundlers/add-prop.js', prop: 'test', value: 1 }]
+  }), createBundle({
+    id: 'two',
+    bundlers: ['./test/fixtures/bundlers/append-new-line.js', { run: './test/fixtures/bundlers/add-prop.js', prop: 'test', value: 12 }]
+  }), createBundle({
+    id: 'three',
+    bundlers: ['./test/fixtures/bundlers/append-new-line.js', { run: './test/fixtures/bundlers/add-prop.js', prop: 'test', value: 123 }]
+  })]
+  return bundles({ bundles: config }, { run: ['two'] }).then(result => {
+    expect(result.success).toBe(true)
+    expect(result.bundles.length).toBe(3)
+
+    expect(result.bundles[0].id).toBe('one')
+    expect(result.bundles[1].id).toBe('two')
+    expect(result.bundles[2].id).toBe('three')
+
+    expect(result.bundlesMap.one.success).toBe('skipped')
+    expect(result.bundlesMap.two.success).toBe(true)
+    expect(result.bundlesMap.three.success).toBe('skipped')
+
+    expect(result.bundlesMap.one.test).toBe(undefined)
+    expect(result.bundlesMap.three.test).toBe(undefined)
+
+    expect(result.bundlesMap.two).toMatchObject({
+      success: true,
+      test: 12
+    })
+    expect(result.bundlesMap.two.output.length).toBe(1)
+    expect(result.bundlesMap.two.output[0].source.path).toBe('test/fixtures/simple.md')
+    expect(result.bundlesMap.two.output[0].content).toBe(result.bundles[0].output[0].source.content + '\n')
+  })
+})
+
+test('run with options.cwd', () => {
+  expect.assertions(6)
+  return bundles({
+    input: 'simple.md',
+    bundlers: [bundle => bundle]
+  }, { cwd: 'test/fixtures' }).then(result => {
+    expect(result.success).toBe(true)
+    expect(result.bundles.length).toBe(1)
+    const bundle = result.bundles[0]
+    expect(bundle.output.length).toBe(1)
+    expect(bundle.output[0]).toMatchObject({
+      source: {
+        path: 'simple.md',
+        cwd: 'test/fixtures',
+        content: '# Simple Test\n\nThis is a test.\n'
+      },
+      content: '# Simple Test\n\nThis is a test.\n'
+    })
+    expect(bundle.input.length).toBe(1)
+    expect(bundle.input[0]).toBe('test/fixtures/simple.md')
   })
 })
 

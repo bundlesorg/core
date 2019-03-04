@@ -17,6 +17,7 @@ let nextId = 0
 const defaults = {
   path: undefined,
   run: true,
+  cwd: process.cwd(),
   watch: false,
   loglevel: 'info',
   glob: {
@@ -111,11 +112,11 @@ Bundle.prototype = {
           // Don't run if watcher is not ready yet.
           if (!bundle._meta.watching) return
           // Log the file change.
-          log.info(`File changed: ${path.relative(process.cwd(), filepath)}`)
+          log.info(`File changed: ${path.relative(defaults.cwd, path.join(bundle.options.cwd, filepath))}`)
           // Read in changed source file.
           bundle.outputMap[filepath] = Object.assign(
             bundle.outputMap[filepath],
-            new File(filepath, { options: bundle.options })
+            new File(filepath, bundle.options)
           )
           // Run bundle.
           return bundle.run(bundle)
@@ -168,12 +169,14 @@ function Bundle (bundle = {}) {
   }
   // If input still isn't an Array, return it as invalid.
   if (!(bundle.input instanceof Array)) return bundle
+  // Cache options.cwd.
+  if (!bundle.options.glob.cwd) bundle.options.glob.cwd = bundle.options.cwd
 
   //
   // Resolve input and output files.
   // -------------------------------
   File.setGlobals(bundle.data)
-  const files = resolveFiles(bundle.input)
+  const files = resolveFiles(bundle.input, bundle.options)
   bundle.input = files.input
   bundle.output = files.output
   bundle.outputMap = files.outputMap
@@ -217,10 +220,11 @@ function Bundle (bundle = {}) {
 
 /**
  * Resolve Files from an input Array.
- * @param  {Array}  input Array of paths or Objects to resolve.
+ * @param  {Array}  input  Array of paths or Objects to resolve.
+ * @param  {Object}  options  Runtime options.
  * @return {Object}       Result = { input, output, outputMap }
  */
-function resolveFiles (input = []) {
+function resolveFiles (input = [], options = {}) {
   // Create initial result Object.
   let result = {
     input: [],
@@ -231,10 +235,10 @@ function resolveFiles (input = []) {
   if (!(input instanceof Array)) input = [input]
   // Iterate through the input files and resolve all input/output files.
   return input.reduce((result, srcFile, i) => {
-    const files = File.create(srcFile)
-    result.output.push(...files)
+    const files = File.create(srcFile, options)
     files.forEach((file, i) => {
-      const src = file.source.path
+      const src = path.relative(defaults.cwd, path.join(options.cwd, file.source.path))
+      result.output.push(file)
       result.input.push(src)
       if (!result.outputMap[src]) result.outputMap[src] = result.output[i]
     })

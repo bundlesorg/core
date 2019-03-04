@@ -21,16 +21,17 @@ import _ from './utilities'
  * @param {Object} options
  * @return {Object} File = {}
  */
-function File (input = '', { options = {} } = {}) {
+function File (input = '', options = {}) {
   const file = {}
   // Read file with gray-matter and set source props.
   if (_.isObject(input)) {
     file.source = matter(input.content, options)
-    file.source.path = input.path
+    file.source.path = path.normalize(input.path)
   } else {
-    file.source = matter.read(input, options)
+    file.source = matter.read(path.join(options.cwd, input), options)
     file.source.path = path.normalize(input)
   }
+  file.source.cwd = options.cwd
 
   // Front matter may cause a `\n` character at the beginning of source.content. Remove it.
   if (file.source.data && file.source.content.indexOf('\n') === 0) file.source.content = file.source.content.slice(1)
@@ -66,14 +67,14 @@ function setGlobals (data = {}) {
  * @param  {Object} options  Options.
  * @return {Array}  Array of File Objects.
  */
-function createFiles (input = '', { options = {} } = {}) {
+function createFiles (input = '', options = {}) {
   const files = []
   // Ensure input is a String or Object with path and content props.
   const isObject = _.isObject(input)
   if ((typeof input !== 'string' && !isObject) || (isObject && (!input.path || !input.content))) return files
 
   // If input is an Object, we already have the content.
-  if (isObject) return [new File(input)]
+  if (isObject) return [new File(input, options)]
 
   // If input is a git repo, clone it and use local repo as input.
   if (isGitRepo(input)) input = resolveGitRepo(input)
@@ -82,7 +83,7 @@ function createFiles (input = '', { options = {} } = {}) {
   input = globby.sync(input, options.glob)
 
   // Create and return Array of Files.
-  return input.map(filepath => new File(filepath))
+  return input.map(filepath => new File(filepath, options))
 }
 
 /**
