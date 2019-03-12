@@ -1,0 +1,1 @@
+<%- JSON.stringify(this.pkg, null, 2) %>

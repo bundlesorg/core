@@ -1,5 +1,6 @@
 /* eslint-env jest */
 const fs = require('fs-extra')
+const path = require('path')
 const bundles = require('../lib/bundles.js')
 const log = require('loglevel')
 log.setLevel('silent')
@@ -25,6 +26,7 @@ function addPropBundler (bundle = {}, bundler = {}) {
 
 afterEach(() => {
   fs.removeSync('.repos')
+  fs.removeSync('.temp')
 })
 
 test('fail if `bundles` is a String and config doesn\'t exist', () => {
@@ -444,7 +446,7 @@ test('run with options.run (run only specified bundles)', () => {
 })
 
 test('run with options.cwd', () => {
-  expect.assertions(6)
+  expect.assertions(7)
   return bundles({
     input: 'simple.md',
     bundlers: [bundle => bundle]
@@ -461,8 +463,117 @@ test('run with options.cwd', () => {
       },
       content: '# Simple Test\n\nThis is a test.\n'
     })
+    expect(Object.keys(bundle.outputMap)).toEqual(expect.arrayContaining(['simple.md']))
     expect(bundle.input.length).toBe(1)
     expect(bundle.input[0]).toBe('test/fixtures/simple.md')
+  })
+})
+
+test('run complex example for node', () => {
+  expect.assertions(12)
+  return bundles({
+    id: 'seed',
+    input: ['src', '.*.{js,yml}', '.browserslistrc', 'package.xjson', 'README.md'],
+    data: require('./fixtures/examples/complex/.seed/.bundles-node.js'),
+    bundlers: [{
+      run: '@bundles/bundles-filters',
+      filters: [{
+        reverse: true,
+        pattern (file) {
+          const data = file.data
+          return (file.source.path === 'src/cli.js' && !data.features.cli) ||
+              (file.source.path === '.rolluprc.js' && !data.features.rollup) ||
+              (['.browsersyncrc.js', '.shotsrc.js', '.browserslistrc'].includes(file.source.path) && !data.features.browser) ||
+              (['.postcssrc.js', '.stylelintrc.js'].includes(file.source.path) && !data.features.css) ||
+              (file.source.path === '.jestrc.js' && !data.features.jest)
+        }
+      }]
+    }, {
+      run: '@bundles/bundles-ejs'
+    }, {
+      run: '@bundles/bundles-banner'
+    }, {
+      run: '@bundles/bundles-banner',
+      options: {
+        include: ['.yml'],
+        prefix: '#! ',
+        suffix: ' #'
+      }
+    }, {
+      run: '@bundles/bundles-output',
+      options: {
+        to (file) {
+          if (file.source.path === 'package.xjson') {
+            file.to = 'package.json'
+            return path.join('.temp', file.to)
+          }
+          return path.join('.temp', file.source.path)
+        }
+      }
+    }]
+  }, { cwd: 'test/fixtures/examples/complex' }).then(result => {
+    expect(result.success).toBe(true)
+    const bundle = result.bundles[0]
+    expect(bundle.output.length).toBe(10)
+    bundle.output.forEach(file => {
+      const expected = fs.readFileSync(path.join('test/fixtures/expected/node', file.to || file.source.path), 'utf8')
+      const actual = fs.readFileSync(path.join('.temp', file.to || file.source.path), 'utf8')
+      expect(actual.trim()).toBe(expected.trim())
+    })
+  })
+})
+
+test('run complex example for browser', () => {
+  expect.assertions(19)
+  return bundles({
+    id: 'seed',
+    input: ['src', '.*.{js,yml}', '.browserslistrc', 'package.xjson', 'README.md'],
+    data: require('./fixtures/examples/complex/.seed/.bundles-browser.js'),
+    bundlers: [{
+      run: '@bundles/bundles-filters',
+      filters: [{
+        reverse: true,
+        pattern (file) {
+          const data = file.data
+          return (file.source.path === 'src/cli.js' && !data.features.cli) ||
+              (file.source.path === '.rolluprc.js' && !data.features.rollup) ||
+              (['.browsersyncrc.js', '.shotsrc.js', '.browserslistrc'].includes(file.source.path) && !data.features.browser) ||
+              (['.postcssrc.js', '.stylelintrc.js'].includes(file.source.path) && !data.features.css) ||
+              (file.source.path === '.jestrc.js' && !data.features.jest)
+        }
+      }]
+    }, {
+      run: '@bundles/bundles-ejs'
+    }, {
+      run: '@bundles/bundles-banner'
+    }, {
+      run: '@bundles/bundles-banner',
+      options: {
+        include: ['.yml'],
+        prefix: '#! ',
+        suffix: ' #'
+      }
+    }, {
+      run: '@bundles/bundles-output',
+      options: {
+        to (file) {
+          if (file.source.path === 'package.xjson') {
+            file.to = 'package.json'
+            return path.join('.temp', file.to)
+          }
+          return path.join('.temp', file.source.path)
+        }
+      }
+    }]
+  }, { cwd: 'test/fixtures/examples/complex' }).then(result => {
+    expect(result.success).toBe(true)
+    const bundle = result.bundles[0]
+    expect(bundle.output.length).toBe(17)
+    bundle.output.forEach(file => {
+      const expected = fs.readFileSync(path.join('test/fixtures/expected/browser', file.to || file.source.path), 'utf8')
+      const actual = fs.readFileSync(path.join('.temp', file.to || file.source.path), 'utf8')
+      expect(actual.trim()).toBe(expected.trim())
+    })
   })
 })
 
@@ -500,7 +611,6 @@ test('run and watch for changes', () => {
     bundle.watcher.unwatch()
     bundle.watcher.close()
     expect(bundle.watcher.closed).toBe(true)
-    fs.removeSync('.temp')
   })
 })
 

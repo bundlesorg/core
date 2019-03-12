@@ -1,0 +1,47 @@
+{
+  "name": "@brikcss/node-module",
+  "version": "0.0.1",
+  "description": "Starter Node module.",
+  "files": [
+    "lib"
+  ],
+  "main": "lib/node-module",
+  "dependencies": {},
+  "devDependencies": {
+    "@brikcss/git-hooks": "*",
+    "codacy-coverage": "*",
+    "concurrently": "*",
+    "coveralls": "*",
+    "jest": "*"
+  },
+  "scripts": {
+    "start": "npm run watch",
+    "test": "npm run unit -- --coverage && cat coverage/lcov.info | codacy-coverage && cat coverage/lcov.info | coveralls",
+    "watch": "concurrently \"npm run unit -- --watchAll\"",
+    "// TASKS": "",
+    "lint": "standard *.js",
+    "unit": "jest --config .jestrc.js"
+  },
+  "keywords": [
+    "bundles",
+    "bundle",
+    "module",
+    "starter",
+    "node"
+  ],
+  "author": "Brikcss <https://github.com/brikcss>",
+  "contributors": [
+    "Zimmee <thezimmee@gmail.com>"
+  ],
+  "license": "MIT",
+  "homepage": "https://github.com/brikcss/node-module",
+  "bugs": "https://github.com/brikcss/node-module/issues",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/brikcss/node-module.git"
+  },
+  "publishConfig": {
+    "tag": "dev",
+    "access": "public"
+  }
+}
