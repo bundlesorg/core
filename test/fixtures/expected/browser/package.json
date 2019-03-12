@@ -1,0 +1,78 @@
+{
+  "name": "@brikcss/browser-module",
+  "version": "0.0.1",
+  "description": "Starter Browser module.",
+  "files": [
+    "lib",
+    "bin",
+    "module",
+    "browser",
+    "umd"
+  ],
+  "main": "lib/browser-module",
+  "bin": "bin/browser-module",
+  "module": "module/browser-module",
+  "browser": "browser/browser-module",
+  "umd": "umd/browser-module",
+  "dependencies": {},
+  "devDependencies": {
+    "@babel/preset-env": "*",
+    "@brikcss/git-hooks": "*",
+    "@brikcss/shots": "*",
+    "@brikcss/stylelint-config-css": "*",
+    "@bundles/bundles-postcss": "*",
+    "@bundles/core": "*",
+    "autoprefixer": "*",
+    "browser-sync": "*",
+    "codacy-coverage": "*",
+    "colorguard": "*",
+    "concurrently": "*",
+    "coveralls": "*",
+    "css-mqpacker": "*",
+    "focus-within": "*",
+    "jest": "*",
+    "postcss": "*",
+    "postcss-csso": "*",
+    "postcss-reporter": "*",
+    "rimraf": "*",
+    "rollup": "*",
+    "rollup-plugin-babel": "*",
+    "rollup-plugin-commonjs": "*",
+    "rollup-plugin-node-resolve": "*",
+    "rollup-plugin-terser": "*",
+    "semantic-release": "*"
+  },
+  "scripts": {
+    "start": "npm run watch",
+    "pretest": "npm run build",
+    "test": "npx shots && npm run unit -- --coverage && cat coverage/lcov.info | codacy-coverage && cat coverage/lcov.info | coveralls",
+    "prebuild": "rimraf {0,1,2,3,4}",
+    "build": "rollup --config=.rolluprc.js && bundle",
+    "watch": "concurrently \"npm run build -- --watch\" \"browser-sync start --config ./.browsersyncrc.js\" \"npm run unit -- --watchAll\"",
+    "// TASKS": "",
+    "lint": "standard *.js",
+    "unit": "jest --config .jestrc.js"
+  },
+  "keywords": [
+    "bundles",
+    "bundle",
+    "module",
+    "starter",
+    "node"
+  ],
+  "author": "Brikcss <https://github.com/brikcss>",
+  "contributors": [
+    "Zimmee <thezimmee@gmail.com>"
+  ],
+  "license": "MIT",
+  "homepage": "https://github.com/brikcss/browser-module",
+  "bugs": "https://github.com/brikcss/browser-module/issues",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/brikcss/browser-module.git"
+  },
+  "publishConfig": {
+    "tag": "dev",
+    "access": "public"
+  }
+}
