@@ -77,7 +77,7 @@ Bundle.prototype = {
       // If bundler errors out, mark as such and log the error.
       }).catch(error => {
         bundler.success = false
-        log.error(error)
+        log.error(`Error on [${bundle.id}|${i}]...\n`, error)
         return bundle
       })
     // A bundle is marked as successful if all bundlers successfully complete.
@@ -87,7 +87,7 @@ Bundle.prototype = {
     // If a bundle errors out, mark it and log error.
     }).catch(error => {
       bundle.success = false
-      log.error(error)
+      log.error(`Error on [${bundle.id}]...`, error)
       return bundle
     })
   },
@@ -240,7 +240,7 @@ function resolveFiles (input = [], options = {}) {
       const src = path.relative(defaults.cwd, path.join(options.cwd, file.source.path))
       result.output.push(file)
       result.input.push(src)
-      if (!result.outputMap[src]) result.outputMap[src] = result.output[i]
+      if (!result.outputMap[file.source.path]) result.outputMap[file.source.path] = result.output[i]
     })
     return result
   }, result)
@@ -254,7 +254,7 @@ function resolveFiles (input = [], options = {}) {
  */
 function shouldContinue (value, bundleId) {
   if (typeof value === 'string') value = value.split(/,?\s+/)
-  return !value || value === true || (value instanceof Array && value.includes(bundleId))
+  return value === true || (value instanceof Array && value.includes(bundleId))
 }
 
 // -------------------------------------------------------------------------------------------------

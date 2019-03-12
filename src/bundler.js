@@ -42,7 +42,7 @@ function Bundler (bundler = {}) {
     bundler.run = require(bundler.run)
   } catch (error) {
     bundler._meta.valid = false
-    log.error(error)
+    log.error(`Error creating bundler...`, error)
     return bundler
   }
 
