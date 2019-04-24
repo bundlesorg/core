@@ -28,9 +28,7 @@ const base = {
 // Config variations.
 //
 
-let configs = []
-
-configs.push({
+let configs = [{
   input: base.input,
   external: base.external,
   output: [
@@ -40,7 +38,7 @@ configs.push({
       format: 'cjs'
     }, {
       file: pkg.module,
-      format: 'es'
+      format: 'esm'
     }
   ],
   plugins: [
@@ -55,14 +53,16 @@ configs.push({
     isProd && uglify()
   ],
   watch: base.watch
-}, {
+},
+{
   input: base.cliInput,
   external: base.external.concat(['../lib/bundles.js']),
   output: [
     // CommonJS for Node.
     {
       file: pkg.bin.bundle,
-      format: 'cjs'
+      format: 'cjs',
+      banner: '#!/usr/bin/env node'
     }
   ],
   plugins: [
@@ -77,7 +77,7 @@ configs.push({
     isProd && uglify()
   ],
   watch: base.watch
-})
+}]
 
 // -------------------------------------------------------------------------------------------------
 // Exports.
