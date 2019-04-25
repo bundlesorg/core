@@ -65,7 +65,7 @@ Bundle.prototype = {
     }
 
     // Log it.
-    log.info(`Bundling [${bundle.id}]...`)
+    if (!bundle._meta.watching) log.info(`Bundling [${bundle.id}]...`)
     // Reduce bundlers to a series of promises that run in order.
     return bundle.bundlers.reduce((promise, bundler, i) => {
       return promise.then((bundle) => {
@@ -97,6 +97,7 @@ Bundle.prototype = {
    */
   watch () {
     const bundle = this
+    if (bundle._meta.watching) return
 
     // Return a promise.
     return new Promise((resolve, reject) => {
@@ -119,7 +120,7 @@ Bundle.prototype = {
             new File(filepath, bundle.options)
           )
           // Run bundle.
-          return bundle.run(bundle)
+          return bundle.run(bundle).then(() => log.info(`Rebundled [${bundle.id}]`))
         })
         .on('error', reject)
         .on('ready', () => {
@@ -130,8 +131,8 @@ Bundle.prototype = {
       // Add config file to watcher.
       if (bundle._meta.configFile) bundle.watcher.add(bundle._meta.configFile)
 
-      // Resolve with the bundle.
-      return resolve(bundle)
+      // Notify user.
+      log.info(`Watching [${bundle.id}]...`)
     })
   }
 }
