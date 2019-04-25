@@ -9,6 +9,7 @@ import path from 'path'
 import fs from 'fs-extra'
 import matter from 'gray-matter'
 import childProcess from 'child_process'
+import { getEncoding } from 'istextorbinary'
 import _ from './utilities'
 
 // -------------------------------------------------------------------------------------------------
@@ -22,29 +23,41 @@ import _ from './utilities'
  * @return {Object} File = {}
  */
 function File (input = '', options = {}) {
-  const file = {}
+  options.cwd = options.cwd || process.cwd()
   // Read file with gray-matter and set source props.
-  if (_.isObject(input)) {
-    file.source = matter(input.content, options)
-    file.source.path = path.normalize(input.path)
+  const inputIsObject = _.isObject(input)
+  const content = inputIsObject ? input.content : fs.readFileSync(path.join(options.cwd, input))
+  const encoding = getEncoding(content)
+
+  // Create file.source, patterned after gray-matter's return object
+  // (https://github.com/jonschlinkert/gray-matter#returned-object).
+  this.source = {}
+  if (encoding === 'utf8') {
+    this.source = inputIsObject
+      ? matter(input.content, options)
+      : matter.read(path.join(options.cwd, input), options)
   } else {
-    file.source = matter.read(path.join(options.cwd, input), options)
-    file.source.path = path.normalize(input)
+    this.source = {
+      content,
+      data: {},
+      orig: content
+    }
   }
-  file.source.cwd = options.cwd
+  this.source.path = path.normalize(inputIsObject ? input.path : input)
+  this.source.cwd = options.cwd
 
-  // Front matter may cause a `\n` character at the beginning of source.content. Remove it.
-  if (file.source.data && file.source.content.indexOf('\n') === 0) file.source.content = file.source.content.slice(1)
+  // Front matter may cause a `\n` character at the beginning of source.content. Remove it in
+  // file.content.
+  if (this.source.data && this.source.content.indexOf('\n') === 0) this.source.content = this.source.content.slice(1)
 
-  // Set output props and merge data.
-  file.content = file.source.content
-  file.data = Object.assign({},
-    file.source.data,
-    typeof this.data === 'function' ? this.data(file) : this.data
+  // Set file props, merge local/global data.
+  this.content = this.source.content
+  this.encoding = encoding
+  this.isBuffer = Buffer.isBuffer(this.content)
+  this.data = Object.assign({},
+    this.source.data,
+    typeof this.data === 'function' ? this.data(this) : this.data
   )
-
-  // Return file object.
-  return file
 }
 
 // -------------------------------------------------------------------------------------------------

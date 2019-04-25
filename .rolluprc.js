@@ -43,6 +43,7 @@ let configs = [{
   ],
   plugins: [
     babel({
+      babelrc: false,
       exclude: ['node_modules/**'],
       presets: [['@babel/preset-env', {
         targets: {
@@ -67,6 +68,7 @@ let configs = [{
   ],
   plugins: [
     babel({
+      babelrc: false,
       exclude: ['node_modules/**'],
       presets: [['@babel/preset-env', {
         targets: {

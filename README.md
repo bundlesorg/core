@@ -277,5 +277,7 @@ Each file in `Bundles.result.output[n]` or `Bundles.result.outputMap[filepath]` 
     -   **`path`** _{String}_ Source file path.
     -   **`content`** _{String}_ Source content (should not be modified).
     -   **`data`** _{String}_ Source front matter data (should not be modified).
--   **`content`** _{String}_ Output content, intended to be modified by `bundler`s.
+-   **`content`** _{String|Buffer}_ Output content, intended to be modified by `bundler`s. Files that are not `utf8` encoded will be read as a [`Buffer`](https://nodejs.org/api/buffer.html).
 -   **`data`** _{String}_ Output data, intended to be modified by `bundler`s. Bundles merges `config.data` and `bundle.data` on top of `file.data`, resulting in this custom data Object.
+-   **`encoding`** _{String}_ Encoding of the file. Either `utf8` or `binary`.
+-   **`isBuffer`** _{Boolean}_ Whether `file.content` is a [`Buffer`](https://nodejs.org/api/buffer.html). Will be true when the file `encoding` is `binary`.

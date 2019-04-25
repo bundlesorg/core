@@ -1,6 +1,6 @@
 {
   "name": "@bundles/core",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "description": "Bundles is a file bundler -- similar to [WebPack](https://webpack.js.org/), [RollupJS](http://rollupjs.org), [Parcel](https://parceljs.org/), [PostCSS](https://postcss.org/), etc. -- **but for anything**. The main difference between Bundles and other bundlers is that while other bundlers compile to a specific type of output (like JavaScript, CSS, etc.), Bundles can compile to anything.",
   "keywords": ["brikcss", "bundles", "bundler", "build", "compiler", "transpiler", "task runner"],
   "license": "MIT",
@@ -40,6 +40,7 @@
     "@bundles/bundles-ejs": "0.0.1",
     "@bundles/bundles-filters": "0.0.3",
     "@bundles/bundles-output": "0.0.4",
+    "babel-plugin-transform-es2015-modules-commonjs": "^6.26.2",
     "codacy-coverage": "^3.3.0",
     "concurrently": "^4.1.0",
     "coveralls": "^3.0.2",
@@ -57,6 +58,7 @@
     "fs-extra": "^7.0.1",
     "globby": "^9.2.0",
     "gray-matter": "^4.0.1",
+    "istextorbinary": "^2.5.1",
     "loglevel": "^1.6.1",
     "minimist": "^1.2.0"
   }
