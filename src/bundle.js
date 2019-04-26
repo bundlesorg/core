@@ -114,25 +114,31 @@ Bundle.prototype = {
           if (!bundle._meta.watching) return
           // Log the file change.
           log.info(`File changed: ${path.relative(defaults.cwd, path.join(bundle.options.cwd, filepath))}`)
-          // Read in changed source file.
-          bundle.outputMap[filepath] = Object.assign(
-            bundle.outputMap[filepath],
-            new File(filepath, bundle.options)
-          )
+          // Read in changed source file, if it exists in the output dictionary.
+          if (bundle.outputMap[filepath]) {
+            bundle.outputMap[filepath] = Object.assign(
+              bundle.outputMap[filepath],
+              new File(filepath, bundle.options)
+            )
+          }
           // Run bundle.
           return bundle.run(bundle).then(() => log.info(`Rebundled [${bundle.id}]`))
         })
         .on('error', reject)
         .on('ready', () => {
           bundle._meta.watching = true
-          resolve(bundle)
+          // Notify user.
+          log.info(`Watching [${bundle.id}]...`)
         })
 
-      // Add config file to watcher.
-      if (bundle._meta.configFile) bundle.watcher.add(bundle._meta.configFile)
-
-      // Notify user.
-      log.info(`Watching [${bundle.id}]...`)
+      // Add config and other configured watch files to watcher.
+      if (bundle._meta.configFile) {
+        const configFilepath = path.resolve(path.join(bundle.options.cwd, bundle._meta.configFile))
+        const configChildren = getChildModules(configFilepath)
+        bundle._meta.dataFiles = [configFilepath].concat(configChildren)
+        log.info('DATA FILES:', bundle._meta.dataFiles)
+        bundle.watcher.add(bundle._meta.dataFiles)
+      }
     })
   }
 }
@@ -161,7 +167,8 @@ function Bundle (bundle = {}) {
     _meta: {
       valid: false,
       watching: false,
-      configFile: undefined
+      configFile: undefined,
+      dataFiles: []
     }
   }, { options: this.options, data: this.data }, bundle], { arrayStrategy: 'overwrite' })
   // Convert input to an Array.
@@ -256,6 +263,16 @@ function resolveFiles (input = [], options = {}) {
 function shouldContinue (value, bundleId) {
   if (typeof value === 'string') value = value.split(/,?\s+/)
   return value === true || (value instanceof Array && value.includes(bundleId))
+}
+
+function getChildModules (modulePath) {
+  modulePath = path.resolve(modulePath)
+  if (!require.cache[modulePath] || !require.cache[modulePath].children.length) return []
+  return require.cache[modulePath].children.reduce((result, child) => {
+    result.push(child.id)
+    if (child.children.length) result = result.concat(getChildModules(child.id))
+    return result
+  }, [])
 }
 
 // -------------------------------------------------------------------------------------------------
