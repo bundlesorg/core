@@ -5,7 +5,6 @@
 //
 
 import path from 'path'
-import log from 'loglevel'
 import _ from './utilities'
 
 // -------------------------------------------------------------------------------------------------
@@ -18,41 +17,34 @@ import _ from './utilities'
  */
 function Bundler (bundler = {}) {
   // Ensure bundler is an Object.
-  if (!_.isObject(bundler)) bundler = { run: bundler }
+  if (!_.isObject(bundler)) this.run = bundler
+
+  // Merge bundler down to this instance.
+  Object.keys(bundler).forEach(key => { this[key] = bundler[key] })
 
   // Normalize bundler.
-  bundler._meta = bundler._meta || {}
-  bundler._meta.valid = true
-  bundler.success = false
+  this.valid = true
+  this.success = false
 
   // Validate bundler.run.
-  if (typeof bundler.run === 'function') return bundler
-  if (!bundler.run || typeof bundler.run !== 'string') {
-    bundler._meta.valid = false
-    return bundler
+  if (!this.run || !['string', 'function'].includes(typeof this.run)) {
+    this.valid = false
   }
 
-  // If bundler.run is a relative path, resolve the path.
-  if (bundler.run.indexOf('./') === 0 || bundler.run.indexOf('../') === 0) {
-    bundler.run = path.resolve(bundler.run)
-  }
+  if (typeof this.run === 'string') {
+    // If bundler.run is a relative path, resolve the path.
+    if (this.run.indexOf('./') === 0 || this.run.indexOf('../') === 0) {
+      this.run = path.resolve(this.run)
+    }
 
-  // Require module.
-  try {
-    bundler.run = require(bundler.run)
-  } catch (error) {
-    bundler._meta.valid = false
-    log.error(`Error creating bundler...`, error)
-    return bundler
+    // Require module.
+    this.run = _.requireModule(this.run, 'Error creating bundler...') || this.run
   }
 
   // At this point if bundler.run is not a function, skip it.
-  if (typeof bundler.run !== 'function') {
-    bundler._meta.valid = false
+  if (typeof this.run !== 'function') {
+    this.valid = false
   }
-
-  // Return the bundler Object.
-  return bundler
 }
 
 // -------------------------------------------------------------------------------------------------

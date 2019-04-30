@@ -1,6 +1,6 @@
 ---
 matter: true
-winner: 'front-matter'
+winner: 'local'
 ---
 
 # Simple Test

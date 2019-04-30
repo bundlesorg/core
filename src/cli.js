@@ -4,48 +4,69 @@
 // Set up environment.
 //
 
-import fs from 'fs-extra'
 import minimist from 'minimist'
-import bundles from '../lib/bundles.js'
+import merge from '@brikcss/merge'
+import path from 'path'
+import _ from './utilities.js'
+import Bundles from '../lib/bundles.js'
 
-const globalOptions = minimist(process.argv.slice(2), {
-  boolean: true,
-  alias: {
-    config: 'C',
-    data: 'D',
-    bundlers: 'B',
-    run: 'R',
-    watch: 'W',
-    loglevel: 'L',
-    glob: 'G',
-    frontMatter: 'M',
-    chokidar: 'C'
+const cli = minimist(process.argv.slice(2), {
+  boolean: true
+})
+let config = {
+  bundles: undefined,
+  options: {},
+  data: {}
+}
+
+// -------------------------------------------------------------------------------------------------
+// Normalize cli options.
+//
+
+// Parse cli configuration.
+const objectProps = ['data', 'config', 'bundlers', 'glob', 'frontMatter', 'chokidar']
+const optionsProps = ['run', 'watch', 'cwd', 'loglevel', 'glob', 'frontMatter', 'chokidar']
+Object.keys(cli).forEach(prop => {
+  // Convert configured props to an object.
+  if (objectProps.includes(prop) && (cli[prop][0] === '{' || cli[prop][0] === '[')) {
+    cli[prop] = JSON.parse(cli[prop])
+  }
+  // Attach optionsProps to config.options.
+  if (optionsProps.includes(prop)) {
+    config.options[prop] = cli[prop]
   }
 })
 
-// Parse object properties to an Object.
-const objectProps = ['glob', 'frontMatter', 'chokidar']
-objectProps.forEach(prop => {
-  if (globalOptions[prop]) globalOptions[prop] = JSON.parse(globalOptions[prop])
-})
+// Parse cli.data.
+if (typeof cli.data === 'string') {
+  config.data = _.requireModule(path.resolve(cli.data))
+}
 
-// Grab data file if exists.
-if (globalOptions.data && fs.pathExistsSync(globalOptions.data)) {
-  globalOptions.data = require(globalOptions.data)
+// Parse cli.config.
+if (_.isObject(cli.config) && cli.config.bundles) {
+  config = merge([config, cli.config], { arrayStrategy: 'overwrite' })
+} else {
+  config.bundles = cli.config
+}
+
+// If input and bundlers exist, create a bundle and push to config.bundles.
+if (!cli.config && cli._ && cli._.length && cli.bundlers) {
+  if (typeof cli.bundlers === 'string') cli.bundlers = _.convertStringToArray(cli.bundlers)
+
+  const bundle = {
+    id: cli.id || 'cli',
+    input: cli._,
+    bundlers: cli.bundlers
+  }
+  if (!config.bundles) config.bundles = [bundle]
+  else if (config.bundles instanceof Array) config.bundles.unshift(bundle)
+  else if (_.isObject(config.bundles)) config.bundles = [bundle, config.bundles]
 }
 
 // -------------------------------------------------------------------------------------------------
 // Run bundles.
 //
 
-// Create bundles.
-const bundlesConfig = globalOptions._ && globalOptions._.length ? {
-  input: globalOptions._,
-  bundlers: globalOptions.bundlers,
-  data: globalOptions.data
-} : globalOptions.config || ''
-
 // Run it.
-bundles(bundlesConfig, globalOptions).then(result => {
-  process.exit()
-})
+if (!config.bundles) config.bundles = ''
+Bundles.run(config)

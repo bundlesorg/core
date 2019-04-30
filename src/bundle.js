@@ -8,64 +8,61 @@ import log from 'loglevel'
 import merge from '@brikcss/merge'
 import path from 'path'
 import chokidar from 'chokidar'
+// import Bundles from './bundles.js'
 import Bundler from './bundler.js'
 import File from './file.js'
 import _ from './utilities.js'
 
+// Cache cwd.
+const cwd = process.cwd()
 // Cache next id for bundles that don't have an ID already.
 let nextId = 0
-const defaults = {
-  path: undefined,
-  run: true,
-  cwd: process.cwd(),
-  watch: false,
-  loglevel: 'info',
-  glob: {
-    dot: true
-  },
-  frontMatter: {},
-  chokidar: {}
-}
 
 // -------------------------------------------------------------------------------------------------
 // Bundler constructor and prototype.
 //
 
-/**
- * Bundle prototype.
- * @type {Object}
- */
 Bundle.prototype = {
   /**
-   * Default options.
-   * @type {Object}
+   * Whether a bundle is configured to be run.
+   *
+   * @return  {Boolean}  Whether Bundle ID should be run.
    */
-  defaults,
+  shouldRun () {
+    return _.idExistsInValue(this.options.run, this.id)
+  },
   /**
-   * Options to be merged with each new Bundle.
-   * @type {Object}
+   * Whether a bundle is configured to be watched.
+   *
+   * @return  {Boolean}  Whether Bundle ID should be watched.
    */
-  options: Object.assign({}, defaults),
+  shouldWatch () {
+    return _.idExistsInValue(this.options.watch, this.id)
+  },
+
   /**
    * Run a single bundle.
+   *
+   * @param {Boolean} ?isTest=false? Will terminate when true.
    * @return {Object}  Compiled bundle.
    */
-  run () {
+  run (isTest = false) {
     const bundle = this
+
     // Do not run it if it's invalid.
-    if (!bundle._meta.valid) {
+    if (!bundle.valid) {
       bundle.success = false
-      return bundle
+      return Promise.resolve(bundle)
     }
 
     // Only continue if configured to do so.
-    if (!shouldContinue(bundle.options.run, bundle.id)) {
+    if (!bundle.shouldRun()) {
       bundle.success = 'skipped'
       return Promise.resolve(bundle)
     }
 
     // Log it.
-    if (!bundle._meta.watching) log.info(`Bundling [${bundle.id}]...`)
+    if (!bundle.watching) log.info(`Bundling [${bundle.id}]...`)
     // Reduce bundlers to a series of promises that run in order.
     return bundle.bundlers.reduce((promise, bundler, i) => {
       return promise.then((bundle) => {
@@ -83,7 +80,7 @@ Bundle.prototype = {
     // A bundle is marked as successful if all bundlers successfully complete.
     }, Promise.resolve(bundle)).then(bundle => {
       bundle.success = bundle.bundlers.every(bundler => bundler.success)
-      return bundle.watch()
+      return bundle.watch(isTest)
     // If a bundle errors out, mark it and log error.
     }).catch(error => {
       bundle.success = false
@@ -91,19 +88,22 @@ Bundle.prototype = {
       return bundle
     })
   },
+
   /**
    * Watch bundle and recompile when source input changes.
+   *
+   * @param {Boolean} ?isTest=false? Will terminate when true.
    * @return {Object} Compiled bundle.
    */
-  watch () {
+  watch (isTest = false) {
     const bundle = this
-    if (bundle._meta.watching) return
+    if (bundle.watching) return Promise.resolve(bundle)
 
     // Return a promise.
     return new Promise((resolve, reject) => {
       // Only watch if it's configured to be watched.
-      if (!shouldContinue(bundle.options.watch, bundle.id)) {
-        bundle._meta.watching = false
+      if (!bundle.shouldWatch()) {
+        bundle.watching = false
         return resolve(bundle)
       }
 
@@ -111,14 +111,14 @@ Bundle.prototype = {
       bundle.watcher
         .on('change', (filepath) => {
           // Don't run if watcher is not ready yet.
-          if (!bundle._meta.watching) return
+          if (!bundle.watching) return
           // Log the file change.
-          log.info(`File changed: ${path.relative(defaults.cwd, path.join(bundle.options.cwd, filepath))}`)
+          log.info(`File changed: ${path.relative(cwd, path.join(bundle.options.cwd, filepath))}`)
           // Read in changed source file, if it exists in the output dictionary.
           if (bundle.outputMap[filepath]) {
             bundle.outputMap[filepath] = Object.assign(
               bundle.outputMap[filepath],
-              new File(filepath, bundle.options)
+              new File(filepath, bundle)
             )
           }
           // Run bundle.
@@ -126,18 +126,26 @@ Bundle.prototype = {
         })
         .on('error', reject)
         .on('ready', () => {
-          bundle._meta.watching = true
+          bundle.watching = true
           // Notify user.
           log.info(`Watching [${bundle.id}]...`)
         })
 
       // Add config and other configured watch files to watcher.
-      if (bundle._meta.configFile) {
-        const configFilepath = path.resolve(path.join(bundle.options.cwd, bundle._meta.configFile))
+      if (bundle.configFile) {
+        const configFilepath = path.resolve(path.join(bundle.options.cwd, bundle.configFile))
         const configChildren = getChildModules(configFilepath)
-        bundle._meta.dataFiles = [configFilepath].concat(configChildren)
-        log.info('DATA FILES:', bundle._meta.dataFiles)
-        bundle.watcher.add(bundle._meta.dataFiles)
+        bundle.dataFiles = [configFilepath].concat(configChildren)
+        log.info('DATA FILES:', bundle.dataFiles)
+        bundle.watcher.add(bundle.dataFiles)
+      }
+
+      // If this is a test, terminate this after the watcher is initialized.
+      if (isTest) {
+        return _.poll(() => bundle.watching, 5000, 200).then(() => {
+          bundle.watcher.close()
+          return resolve(bundle)
+        })
       }
     })
   }
@@ -145,57 +153,61 @@ Bundle.prototype = {
 
 /**
  * Bundle constructor.
- * @param {Object} bundle  Bundle instance.
+ *
+ * @param {Object} config  Bundle configuration.
+ * @param {Object} globals  Bundles global configuration.
  */
-function Bundle (bundle = {}) {
+function Bundle ({ id, input, bundlers, options, data } = {}, globals = {}) {
   //
-  // Normalize bundle.
-  // ------------------------------
-  // First make sure bundle is an Object.
-  if (!_.isObject(bundle)) return { input: bundle, _meta: { valid: false } }
-  // Merge bundle with defaults.
-  bundle = merge([{
-    id: bundle.id || nextId++,
-    success: false,
-    input: [],
-    output: [],
-    bundlers: [],
-    options: {},
-    data: {},
-    watcher: false,
-    on: {},
-    _meta: {
-      valid: false,
-      watching: false,
-      configFile: undefined,
-      dataFiles: []
-    }
-  }, { options: this.options, data: this.data }, bundle], { arrayStrategy: 'overwrite' })
+  // Set defaults and normalize.
+  // -------------
+  // Set internal props.
+  this.success = false
+  this.output = []
+  this.watcher = false
+  this.valid = false
+  this.watching = false
+  this.configFile = undefined
+  this.dataFiles = []
+
+  // Set user configurable props.
+  this.id = ((typeof id === 'number' || typeof id === 'string') ? id : nextId++).toString()
+  this.input = input || []
+  this.bundlers = bundlers || []
+  this.options = merge([{
+    run: true,
+    cwd: cwd,
+    watch: false,
+    loglevel: 'info',
+    glob: {
+      dot: true
+    },
+    frontMatter: {},
+    chokidar: {}
+  }, globals.options || {}, options || {}], { arrayStrategy: 'overwrite' })
+  this.data = merge([{}, globals.data || {}, data || {}], { arrayStrategy: 'overwrite' })
+
   // Convert input to an Array.
-  if (typeof bundle.input === 'string' || _.isObject(bundle.input)) {
-    bundle.input = [bundle.input]
+  if (typeof this.input === 'string' || _.isObject(this.input)) {
+    this.input = [this.input]
   }
   // If input still isn't an Array, return it as invalid.
-  if (!(bundle.input instanceof Array)) return bundle
-  // Cache options.cwd.
-  if (!bundle.options.glob.cwd) bundle.options.glob.cwd = bundle.options.cwd
+  if (!(this.input instanceof Array)) return
+  // Use options.cwd on options.glob.cwd.
+  if (this.options && this.options.glob && !this.options.glob.cwd) this.options.glob.cwd = this.options.cwd
 
   //
   // Resolve input and output files.
   // -------------------------------
-  File.setGlobals(bundle.data)
-  const files = resolveFiles(bundle.input, bundle.options)
-  bundle.input = files.input
-  bundle.output = files.output
-  bundle.outputMap = files.outputMap
+  const files = resolveFiles(this.input, this)
+  this.input = files.input
+  this.output = files.output
+  this.outputMap = files.outputMap
 
   //
   // Create bundlers.
   // ----------------
-  bundle.bundlers = bundle.bundlers.map(bundler => {
-    bundler = new Bundler(bundler)
-    return bundler
-  })
+  this.bundlers = this.bundlers.map(bundler => new Bundler(bundler))
 
   //
   // Check if bundle is valid.
@@ -204,22 +216,11 @@ function Bundle (bundle = {}) {
   //  - output is a non-empty [].
   //  - bundlers is a non-empty [] with at least one valid bundler.
   // -------------------------
-  bundle._meta.valid = bundle.output instanceof Array &&
-    bundle.output.length > 0 &&
-    bundle.bundlers instanceof Array &&
-    bundle.bundlers.length > 0 &&
-    bundle.bundlers.some(bundler => bundler._meta.valid)
-
-  //
-  // Create public API.
-  // ------------------
-  bundle.run = this.run
-  bundle.watch = this.watch
-
-  //
-  // Return the newly created bundle.
-  // --------------------------------
-  return bundle
+  this.valid = this.output instanceof Array &&
+    this.output.length > 0 &&
+    this.bundlers instanceof Array &&
+    this.bundlers.length > 0 &&
+    this.bundlers.some(bundler => bundler.valid)
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -229,10 +230,10 @@ function Bundle (bundle = {}) {
 /**
  * Resolve Files from an input Array.
  * @param  {Array}  input  Array of paths or Objects to resolve.
- * @param  {Object}  options  Runtime options.
+ * @param  {Object}  bundle  Bundle configuration.
  * @return {Object}       Result = { input, output, outputMap }
  */
-function resolveFiles (input = [], options = {}) {
+function resolveFiles (input = [], bundle = {}) {
   // Create initial result Object.
   let result = {
     input: [],
@@ -243,9 +244,9 @@ function resolveFiles (input = [], options = {}) {
   if (!(input instanceof Array)) input = [input]
   // Iterate through the input files and resolve all input/output files.
   return input.reduce((result, srcFile, i) => {
-    const files = File.create(srcFile, options)
+    const files = File.create(srcFile, bundle)
     files.forEach((file, i) => {
-      const src = path.relative(defaults.cwd, path.join(options.cwd, file.source.path))
+      const src = path.relative(cwd, path.join(bundle.options.cwd, file.source.path))
       result.output.push(file)
       result.input.push(src)
       if (!result.outputMap[file.source.path]) result.outputMap[file.source.path] = result.output[i]
@@ -255,16 +256,11 @@ function resolveFiles (input = [], options = {}) {
 }
 
 /**
- * Determine if a bundle should continue, provided a Boolean or Array of Bundle IDs.
- * @param  {Boolean|String[]|String}  value  Value to check for bundle.
- * @param  {String} bundleId  Bundle ID to check against.
- * @return {Boolean}  Whether bundle is included.
+ * Get children modules of a given node module.
+ *
+ * @param   {String}  modulePath  Module path to get children for.
+ * @return  {Array}  Children modules.
  */
-function shouldContinue (value, bundleId) {
-  if (typeof value === 'string') value = value.split(/,?\s+/)
-  return value === true || (value instanceof Array && value.includes(bundleId))
-}
-
 function getChildModules (modulePath) {
   modulePath = path.resolve(modulePath)
   if (!require.cache[modulePath] || !require.cache[modulePath].children.length) return []

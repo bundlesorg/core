@@ -29,7 +29,7 @@
     "pretest": "npm run build",
     "test": "standard *.js && jest --config .jestrc.js --coverage && cat coverage/lcov.info | codacy-coverage && cat coverage/lcov.info | coveralls",
     "unit": "jest --config .jestrc.js",
-    "watch": "concurrently \"jest --config .jestrc.js --watchAll\" \"npm run build -- --watch\"",
+    "watch": "concurrently \"npm run build -- --watch\" \"jest --config .jestrc.js --watchAll\"",
     "prebuild": "rimraf {lib,bin,module}",
     "build": "rollup --config=.rolluprc.js"
   },
