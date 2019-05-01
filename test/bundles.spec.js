@@ -21,7 +21,7 @@ describe('Bundles end to end', () => {
       input: 'test/fixtures/simple.md',
       bundlers: [bundle => bundle]
     }).then(result => {
-      isSuccessfulResult(result, { watching: false, configFile: null })
+      isSuccessfulResult(result, { configFile: null })
       result.bundles.forEach(bundle => isSuccessfulBundle(bundle, { id: '0' }))
     })
   })

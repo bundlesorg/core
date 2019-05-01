@@ -3,28 +3,15 @@ import merge from '@brikcss/merge'
 
 function isValidOptions (options, expectedOptions = {}) {
   expectedOptions = merge([{
-    chokidar: expect.any(Object),
-    cwd: expect.any(String),
-    frontMatter: expect.any(Object),
-    glob: expect.any(Object),
-    loglevel: expect.any(String),
     run: expect.any(Boolean),
-    watch: expect.any(Boolean)
+    watch: expect.any(Boolean),
+    cwd: expect.any(String),
+    loglevel: expect.any(String),
+    chokidar: expect.any(Object),
+    frontMatter: expect.any(Object),
+    glob: expect.any(Object)
   }, expectedOptions], { arrayStrategy: 'overwrite' })
   expect(options).toMatchObject(expectedOptions)
-}
-
-function isValidConfig (config, expectedConfig = {}) {
-  expectedConfig = merge([{
-    initialized: true,
-    success: expect.any(Boolean),
-    watching: expect.any(Boolean),
-    bundles: expect.any(Array),
-    // files: expect.any(Map),
-    options: expect.any(Object),
-    data: expect.any(Object)
-  }, expectedConfig], { arrayStrategy: 'overwrite' })
-  expect(config).toMatchObject(expectedConfig)
 }
 
 function isValidBundle (bundle, expectedBundle = {}) {
@@ -32,8 +19,7 @@ function isValidBundle (bundle, expectedBundle = {}) {
     valid: true,
     success: expect.any(Boolean),
     watching: expect.any(Boolean),
-    // configFile: null || expect.any(String),
-    dataFiles: expect.any(Array),
+    watcher: expect.any(Object),
     input: expect.any(Array),
     output: expect.any(Array),
     bundlers: expect.any(Array)
@@ -64,8 +50,6 @@ function isValidFile (file, expectedFile = {}) {
     },
     content: expect.any(String),
     data: expect.any(Object),
-    // options: expect.any(Object),
-    // bundle: expect.any(Object),
     encoding: 'utf8' || 'binary',
     isBuffer: expect.any(Boolean)
   }, expectedFile], { arrayStrategy: 'overwrite' })
@@ -78,11 +62,14 @@ function isValidResult (result, expectedResult = {}) {
   expectedResult = merge([{
     initialized: true,
     success: expect.any(Boolean),
-    watching: expect.any(Boolean),
-    // configFile: null && expect.any(String),
+    // watching: expect.any(Boolean),
+    watchingDataFiles: expect.any(Boolean),
+    watcher: expect.any(Object),
+    configFile: expect.any(String),
+    dataFiles: expect.any(Array),
+    bundles: expect.any(Array),
     options: expect.any(Object),
-    data: expect.any(Object),
-    bundles: expect.any(Array)
+    data: expect.any(Object)
   }, expectedResult], { arrayStrategy: 'overwrite' })
   expect(result).toMatchObject(expectedResult)
 }
@@ -94,7 +81,6 @@ function isSuccessfulResult (result, expectedResult = {}) {
 
 export {
   isValidOptions,
-  isValidConfig,
   isValidBundle,
   isSuccessfulBundle,
   isValidBundler,

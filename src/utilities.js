@@ -1,6 +1,7 @@
 /*! utilities.js | @author brikcss <https://github.com/brikcss> | @reference https://github.com/brikcss/bundles-core */
 
 import log from 'loglevel'
+import path from 'path'
 
 /**
  * Check if value is a true Object.
@@ -80,10 +81,27 @@ function requireModule (filepath, errorMessage) {
   return result
 }
 
+/**
+ * Get children modules of a given node module.
+ *
+ * @param   {String}  modulePath  Module path to get children for.
+ * @return  {Array}  Children modules.
+ */
+function getChildrenModules (modulePath) {
+  modulePath = path.resolve(modulePath)
+  if (!require.cache[modulePath] || !require.cache[modulePath].children.length) return []
+  return require.cache[modulePath].children.reduce((result, child) => {
+    result.push(child.id)
+    if (child.children.length) result = result.concat(getChildrenModules(child.id))
+    return result
+  }, [])
+}
+
 export default {
   isObject,
   convertStringToArray,
   idExistsInValue,
   poll,
-  requireModule
+  requireModule,
+  getChildrenModules
 }

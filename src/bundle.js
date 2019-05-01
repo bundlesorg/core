@@ -8,7 +8,6 @@ import log from 'loglevel'
 import merge from '@brikcss/merge'
 import path from 'path'
 import chokidar from 'chokidar'
-// import Bundles from './bundles.js'
 import Bundler from './bundler.js'
 import File from './file.js'
 import _ from './utilities.js'
@@ -122,7 +121,7 @@ Bundle.prototype = {
             )
           }
           // Run bundle.
-          return bundle.run(bundle).then(() => log.info(`Rebundled [${bundle.id}]`))
+          return bundle.run().then(() => log.info(`Rebundled [${bundle.id}]`))
         })
         .on('error', reject)
         .on('ready', () => {
@@ -131,13 +130,8 @@ Bundle.prototype = {
           log.info(`Watching [${bundle.id}]...`)
         })
 
-      // Add config and other configured watch files to watcher.
-      if (bundle.configFile) {
-        const configFilepath = path.resolve(path.join(bundle.options.cwd, bundle.configFile))
-        const configChildren = getChildModules(configFilepath)
-        bundle.dataFiles = [configFilepath].concat(configChildren)
-        log.info('DATA FILES:', bundle.dataFiles)
-        bundle.watcher.add(bundle.dataFiles)
+      if (bundle.dataFiles) {
+        bundle.watchDataFiles()
       }
 
       // If this is a test, terminate this after the watcher is initialized.
@@ -147,6 +141,7 @@ Bundle.prototype = {
           return resolve(bundle)
         })
       }
+      return resolve(bundle)
     })
   }
 }
@@ -162,13 +157,11 @@ function Bundle ({ id, input, bundlers, options, data } = {}, globals = {}) {
   // Set defaults and normalize.
   // -------------
   // Set internal props.
-  this.success = false
-  this.output = []
-  this.watcher = false
   this.valid = false
+  this.success = false
   this.watching = false
-  this.configFile = undefined
-  this.dataFiles = []
+  this.watcher = null
+  this.output = []
 
   // Set user configurable props.
   this.id = ((typeof id === 'number' || typeof id === 'string') ? id : nextId++).toString()
@@ -253,22 +246,6 @@ function resolveFiles (input = [], bundle = {}) {
     })
     return result
   }, result)
-}
-
-/**
- * Get children modules of a given node module.
- *
- * @param   {String}  modulePath  Module path to get children for.
- * @return  {Array}  Children modules.
- */
-function getChildModules (modulePath) {
-  modulePath = path.resolve(modulePath)
-  if (!require.cache[modulePath] || !require.cache[modulePath].children.length) return []
-  return require.cache[modulePath].children.reduce((result, child) => {
-    result.push(child.id)
-    if (child.children.length) result = result.concat(getChildModules(child.id))
-    return result
-  }, [])
 }
 
 // -------------------------------------------------------------------------------------------------

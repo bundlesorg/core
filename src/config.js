@@ -22,25 +22,39 @@ import _ from './utilities.js'
  * @return {Object}  Bundles dictionary Object.
  */
 function parseConfig (config = '') {
-  const Bundles = this
-
-  // Make sure config is an object and that config.bundles properly exists.
+  // Make sure config is an object and properly formed.
   if (!_.isObject(config) || config.bundles === undefined) config = { bundles: config }
+  if (!_.isObject(config.data)) config.data = config.data || {}
+  config.options = merge([{
+    run: true,
+    cwd: process.cwd(),
+    watch: false,
+    loglevel: 'info',
+    glob: {
+      dot: true
+    },
+    frontMatter: {},
+    chokidar: {}
+  }, config.options || {}], { arrayStrategy: 'overwrite' })
 
   // If bundles is a String, treat it as a filepath to the config file.
   if (typeof config.bundles === 'string') {
     // The bundles String is split at the first ":" character and the 2nd item in the split, if
     // existent, is the run property.
     let configFile = config.bundles.split(':')
-    if (!Bundles.options.run && configFile[1]) Bundles.options.run = configFile[1]
+    if (!config.options.run && configFile[1]) config.options.run = configFile[1]
     configFile = configFile[0]
 
     // Get the config file.
-    configFile = resolveConfigFile(config.bundles, Bundles.options.cwd)
+    configFile = resolveConfigFile(config.bundles, config.options.cwd)
     if (!configFile) throw new Error(`Config file not found. ${config}`)
 
-    // Destructure configFile.
-    Bundles.configFile = path.relative(Bundles.options.cwd, configFile.filepath)
+    // Destructure configFile and add config and its child data files to watcher so that when they
+    // change, all bundles can rerun with refreshed data.
+    config.configFile = path.relative(config.options.cwd, configFile.filepath)
+    const configFilepath = path.resolve(config.configFile)
+    config.dataFiles = _.getChildrenModules(configFilepath)
+    config.dataFiles = [configFilepath].concat(config.dataFiles)
     configFile = configFile.config
     if (_.isObject(configFile) && configFile.bundles) {
       config.bundles = configFile.bundles;
@@ -51,11 +65,6 @@ function parseConfig (config = '') {
     } else {
       config.bundles = configFile
     }
-  }
-
-  // Update globals.
-  if (config.options || config.data) {
-    Bundles.globals({ options: config.options, data: config.data })
   }
 
   // Ensure bundles is an Array.
@@ -72,20 +81,10 @@ function parseConfig (config = '') {
       })
     }
   }
+  if (!(config.bundles instanceof Array)) throw new Error('Bundles must be configured as an Object or Object[].')
 
-  // Set default log level (may get overridden by other log.setLevel() method).
-  log.setDefaultLevel(
-    ['trace', 'debug', 'info', 'warn', 'error', 'silent'].includes(Bundles.options.loglevel)
-      ? Bundles.options.loglevel
-      : 'info'
-  )
-
-  // Create bundles Array.
-  Bundles.add(config.bundles)
-  if (!(Bundles.bundles instanceof Array)) throw new Error('Bundles must be configured as an Object or Object[].')
-
-  // Create bundles and return Bundles.
-  return Bundles
+  // Return config.
+  return config
 }
 
 /**
