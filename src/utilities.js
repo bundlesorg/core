@@ -9,6 +9,7 @@ import path from 'path'
  * @return {Boolean}  Whether value is a true Object.
  */
 function isObject (value) {
+  if (value === null) return false
   return typeof value === 'object' && value.constructor === Object
 }
 
@@ -20,7 +21,7 @@ function isObject (value) {
  */
 function convertStringToArray (value) {
   if (typeof value !== 'string') return value
-  return value.split(/,?\s+/)
+  return value.split(/\s*,\s*/)
 }
 
 /**
@@ -32,7 +33,7 @@ function convertStringToArray (value) {
  * @return {Boolean}  Whether string is included in value.
  */
 function idExistsInValue (value, string) {
-  if (typeof value === 'string') value = value.split(/,?\s+/)
+  if (typeof value === 'string') value = convertStringToArray(value)
   return value === true || (value instanceof Array && value.includes(string))
 }
 
@@ -71,12 +72,12 @@ function poll (fn, timeout, interval) {
  * @param  {Sring}  filepath  Module filepath.
  * @param  {Sring}  errorMessage  Error message in case of error.
  */
-function requireModule (filepath, errorMessage) {
+function requireModule (filepath, { errorMessage, logToConsole = true } = {}) {
   let result
   try {
     result = require(filepath)
   } catch (error) {
-    log.error((errorMessage || `Error importing ${filepath}:`), error)
+    if (logToConsole) log.error((errorMessage || `Error importing ${filepath}:`), error)
   }
   return result
 }
@@ -109,8 +110,8 @@ function getChildrenModules (modulePath) {
 function getTimeDiff (start, { end, suffix = 's' } = {}) {
   if (!start) return '0ms'
   end = end || new Date()
-  let diff = Math.abs(new Date() - start)
-  if (diff >= 1000) diff = diff / 1000
+  let diff = Math.abs(end - start)
+  if (diff >= 1000) diff = (diff / 1000).toFixed(2)
   else suffix = 'ms'
   return diff.toString() + suffix
 }
