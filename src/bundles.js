@@ -38,14 +38,17 @@ Bundles.reset()
 /**
  * Run bundles from user configuration.
  *
- * @param   {object|object[]|string}  [config={}]  Bundles configuration.
- * @param {Boolean} isRefresh=false  Whether current run is a refresh.
- * @return  {object}  Bundles result.
+ * @param {string} [config='']  User configuration object.
+ * @param {Object} [options={}]  Internal options.
+ * @param {boolean} [options.isRebundle=false]  Indicates if this is a rebundle.
+ * @param {Date} options.start  Task's runtime start Date.
+ * @return {Object}  Bundles result.
  */
-function runAll (config = '', isRefresh = false) {
+function runAll (config = '', { isRebundle = false, start } = {}) {
+  start = start || new Date()
   log.setDefaultLevel('info')
-  log.info(`${isRefresh ? 'Refreshing' : 'Running'} Bundles...`)
-  return Bundles.create(config).bundle()
+  log.info(`${isRebundle ? 'Refreshing' : 'Running'} Bundles...`)
+  return Bundles.create(config).bundle({ start })
 }
 
 /**
@@ -53,9 +56,11 @@ function runAll (config = '', isRefresh = false) {
  *
  * @param  {String|String[]} ?bundleIds  Bundle IDs to run. Can be comma-separated String or Array
  *     of Strings. If undefined or not a String or Array, will run all bundles.
+ * @param {Date} ?start  Date/time the task started. Used to calculate the time it took to run.
  * @return {Promise}  Promise that resturns Bundles.
  */
-function bundle (bundleIds) {
+function bundle ({ bundleIds, start }) {
+  start = start || new Date()
   bundleIds = _.convertStringToArray(bundleIds)
   // @todo Change `bundles` to be list of bundle IDs to run, and have this method filter bundles to
   //     run from Bundles.bundles.
@@ -64,7 +69,7 @@ function bundle (bundleIds) {
     return bundle.run()
   })).then(() => {
     Bundles.success = Bundles.bundles.every(bundle => !!bundle.success)
-    log.info(Bundles.success ? '[ok] Success!' : '[!!] Failed. Check errors.')
+    log.info((Bundles.success ? '[ok] Success!' : '[!!] Failed. Check errors.') + (start ? ` (${_.getTimeDiff(start)})` : ''))
     return Bundles
   }).catch(error => {
     log.error(error)
@@ -82,6 +87,7 @@ function watchDataFiles () {
   Bundles.watchingDataFiles = 'ready'
   Bundles.watcher = chokidar.watch(Bundles.dataFiles, Bundles.options.chokidar)
   Bundles.watcher.on('change', (filepath) => {
+    const start = new Date()
     // Don't run if watcher is not ready yet.
     if (Bundles.watchingDataFiles !== true) return
     // Log the change.
@@ -95,7 +101,7 @@ function watchDataFiles () {
       bundles: Bundles.configFile,
       options: Bundles.options,
       data: Bundles.data
-    }, true)
+    }, { isRebundle: true, start })
   })
     .on('error', log.error)
     .on('ready', () => {

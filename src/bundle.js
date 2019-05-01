@@ -109,6 +109,7 @@ Bundle.prototype = {
       bundle.watcher = chokidar.watch(bundle.input, bundle.options.chokidar)
       bundle.watcher
         .on('change', (filepath) => {
+          const start = new Date()
           // Don't run if watcher is not ready yet.
           if (!bundle.watching) return
           // Log the file change.
@@ -121,7 +122,10 @@ Bundle.prototype = {
             )
           }
           // Run bundle.
-          return bundle.run().then(() => log.info(`Rebundled [${bundle.id}]`))
+          return bundle.run().then((result) => {
+            log.info(`Rebundled [${bundle.id}] (${_.getTimeDiff(start)})`)
+            return result
+          })
         })
         .on('error', reject)
         .on('ready', () => {

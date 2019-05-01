@@ -97,11 +97,30 @@ function getChildrenModules (modulePath) {
   }, [])
 }
 
+/**
+ * Get difference, in seconds or milliseconds, between two dates/times.
+ *
+ * @param   {Date}  start  Start Date.
+ * @param   {Object}  [options={}]  Configuration options.
+ * @param   {Date}  options.end  End Date object.
+ * @param   {string}  [options.suffix='s']  Suffix to attach.
+ * @return  {string}  The time difference.
+ */
+function getTimeDiff (start, { end, suffix = 's' } = {}) {
+  if (!start) return '0ms'
+  end = end || new Date()
+  let diff = Math.abs(new Date() - start)
+  if (diff >= 1000) diff = diff / 1000
+  else suffix = 'ms'
+  return diff.toString() + suffix
+}
+
 export default {
   isObject,
   convertStringToArray,
   idExistsInValue,
   poll,
   requireModule,
-  getChildrenModules
+  getChildrenModules,
+  getTimeDiff
 }
