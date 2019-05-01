@@ -120,12 +120,14 @@ Bundle.prototype = {
               bundle.outputMap[filepath],
               new File(filepath, bundle)
             )
+            bundle.changed = [bundle.outputMap[filepath]]
+            // Run bundle.
+            return bundle.run().then((result) => {
+              log.info(`Rebundled [${bundle.id}] (${_.getTimeDiff(start)})`)
+              return result
+            })
           }
-          // Run bundle.
-          return bundle.run().then((result) => {
-            log.info(`Rebundled [${bundle.id}] (${_.getTimeDiff(start)})`)
-            return result
-          })
+          return bundle
         })
         .on('error', reject)
         .on('ready', () => {
@@ -165,6 +167,7 @@ function Bundle ({ id, input, bundlers, options, data } = {}, globals = {}) {
   this.success = false
   this.watching = false
   this.watcher = null
+  this.changed = []
   this.output = []
 
   // Set user configurable props.

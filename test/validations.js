@@ -21,6 +21,7 @@ function isValidBundle (bundle, expectedBundle = {}) {
     watching: expect.any(Boolean),
     watcher: expect.any(Object),
     input: expect.any(Array),
+    changed: expect.any(Array),
     output: expect.any(Array),
     bundlers: expect.any(Array)
   }, expectedBundle], { arrayStrategy: 'overwrite' })

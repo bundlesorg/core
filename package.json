@@ -40,7 +40,7 @@
     "@bundles/bundles-banner": "0.0.3",
     "@bundles/bundles-ejs": "0.0.1",
     "@bundles/bundles-filters": "0.0.3",
-    "@bundles/bundles-output": "0.0.4",
+    "@bundles/bundles-output": "^0.1.3",
     "babel-plugin-transform-es2015-modules-commonjs": "^6.26.2",
     "codacy-coverage": "^3.3.0",
     "concurrently": "^4.1.0",
