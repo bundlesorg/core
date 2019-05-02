@@ -119,13 +119,12 @@ Bundle.prototype = {
             bundle.outputMap[filepath] = new File(filepath, bundle)
             bundle.changed = []
             bundle.changed.push(bundle.outputMap[filepath])
-            // Run bundle.
-            return bundle.run().then((result) => {
-              log.info(`Rebundled [${bundle.id}] (${_.getTimeDiff(start)})`)
-              return result
-            })
           }
-          return bundle
+          // Run bundle.
+          return bundle.run().then((result) => {
+            log.info(`Rebundled [${bundle.id}] (${_.getTimeDiff(start)})`)
+            return result
+          })
         })
         .on('error', reject)
         .on('ready', () => {
@@ -134,8 +133,14 @@ Bundle.prototype = {
           log.info(`Watching [${bundle.id}]...`)
         })
 
+      // Watch config/data files.
       if (bundle.dataFiles) {
         bundle.watchDataFiles()
+      }
+
+      // Watch other files in options.watchFiles.
+      if (bundle.options.watchFiles && bundle.options.watchFiles.length) {
+        bundle.watcher.add(bundle.options.watchFiles)
       }
 
       // If this is a test, terminate this after the watcher is initialized.

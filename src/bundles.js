@@ -215,6 +215,7 @@ function resetBundles () {
     run: true,
     cwd: process.cwd(),
     watch: false,
+    watchFiles: [],
     loglevel: 'info',
     glob: {
       dot: true

@@ -141,6 +141,7 @@ module.exports = {
 
 Individual bundles can be configured [in a config file/Object as outlined above](#using-a-config-file). Configured bundles become `Bundles.bundles`, which is an Array of bundle Objects. Each bundle should be configured as follows:
 
+-   **`id`** \{String\} The ID of the bundle, which can be used in [other options](#configuration-options). If this is not set, it will be the index value (as a String) of the order the bundle was configured.
 -   **`input`** {String|[String]|Object|[Object]} _(required)_ Source input files. Each entry can be a String or Object. Strings are file or directory paths, globs accepted. An Object is a single file where `file.content` is a String or Buffer that represent the file's content, useful for passing a file's content directly. File Objects should also have `file.path`, the file's source path, which will likely be used when compiled by bundlers.
 -   **`bundlers`** {[String]|[Function]|[Object]} _(required)_ Array of bundlers. A String is a path to a node module, whereas a Function is the bundler function itself. An Object allows you to pass configuration to each bundler. `bundler.run` is the only required property, and can also be a String or Function. [Learn about authoring bundlers](#authoring-a-bundler).
 -   **`options`** {Object} Options for this individual bundle. See [configuring options](#configuration-options).
@@ -152,6 +153,7 @@ Options can be configured in the [global config Object](#global-config-object), 
 
 -   **`run`** | **`--run`** \{Boolean|String|[String]\} _[true]_ Determines which bundles -- using `bundle.id` -- will be compiled at runtime. A `true` or `falsy` value will run all bundles. A comma-separated String or an Array of bundle IDs will only run a bundle if its ID is listed. Bundles CLI only accepts a comma-separated String value.
 -   **`watch`** | **`--watch`** \{Boolean|String|[String]\} _[false]_ Determines which bundles -- using `bundle.id` -- will be watched at runtime. A `true` value will watch all bundles. A comma-separated String or an Array of bundle IDs will only watch a bundle if its ID is listed. Bundles CLI only accepts a comma-separated String value.
+-   **`watchFiles`** \{String|[String]\} An Array or String (globs accepted) of additional files to watch, when the bundle is being watched. These files do not get compiled, they are only added to the watcher and simply kick off a rebundle if/when any of them change. This is useful, for example, for template partials that are depended on by other source input files in the bundle.
 -   **`cwd`** | **`--cwd`** \{String\} _[`process.cwd()`]_ The root or current working directory for input source paths.
 -   **`loglevel`** | **`--loglevel`** \{String\} _['info']_ Level of logging. Can be `trace`, `debug`, `info`, `warn`, `error`, or `silent`.
 -   **`glob`** | **`--glob`** {Object} Options passed to [globby](https://github.com/sindresorhus/globby). Bundles CLI only accepts a JSON Object.

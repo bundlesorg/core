@@ -5,6 +5,7 @@ function isValidOptions (options, expectedOptions = {}) {
   expectedOptions = merge([{
     run: expect.any(Boolean),
     watch: expect.any(Boolean),
+    watchFiles: expect.any(Array),
     cwd: expect.any(String),
     loglevel: expect.any(String),
     chokidar: expect.any(Object),
