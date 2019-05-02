@@ -116,11 +116,9 @@ Bundle.prototype = {
           log.info(`File changed: ${path.relative(cwd, path.join(bundle.options.cwd, filepath))}`)
           // Read in changed source file, if it exists in the output dictionary.
           if (bundle.outputMap[filepath]) {
-            bundle.outputMap[filepath] = Object.assign(
-              bundle.outputMap[filepath],
-              new File(filepath, bundle)
-            )
-            bundle.changed = [bundle.outputMap[filepath]]
+            bundle.outputMap[filepath] = new File(filepath, bundle)
+            bundle.changed = []
+            bundle.changed.push(bundle.outputMap[filepath])
             // Run bundle.
             return bundle.run().then((result) => {
               log.info(`Rebundled [${bundle.id}] (${_.getTimeDiff(start)})`)

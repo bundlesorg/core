@@ -141,6 +141,7 @@ function refreshConfig (config = {}) {
     // files that have changed from their original source.
     bundle = new Bundle(bundle, Bundles)
     let existingBundle = Bundles.bundles.find(b => b.id === bundle.id)
+    bundle.changed = []
     if (existingBundle) {
       bundle = merge([bundle, {
         valid: existingBundle.valid,
@@ -148,7 +149,6 @@ function refreshConfig (config = {}) {
         watching: existingBundle.watching,
         watcher: existingBundle.watcher
       }], { arrayStrategy: 'overwrite' })
-      bundle.changed = []
       bundle.output.forEach((file, i) => {
         const originalFile = existingBundle.outputMap[file.source.path]
         if (!originalFile ||
@@ -160,7 +160,7 @@ function refreshConfig (config = {}) {
       })
     // If no bundle existed previously, mark all files as changed.
     } else {
-      bundle.changed = bundle.output
+      bundle.output.forEach((b, i) => bundle.changed.push(bundle.output[i]))
     }
     // Cache config file and its children data files.
     bundle.configFile = Bundles.configFile
