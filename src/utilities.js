@@ -92,6 +92,7 @@ function getChildrenModules (modulePath) {
   modulePath = path.resolve(modulePath)
   if (!require.cache[modulePath] || !require.cache[modulePath].children.length) return []
   return require.cache[modulePath].children.reduce((result, child) => {
+    if (child.id.includes('node_modules') || result.includes(child.id)) return result
     result.push(child.id)
     if (child.children.length) result = result.concat(getChildrenModules(child.id))
     return result

@@ -166,7 +166,6 @@ describe('Bundle methods', () => {
       options: { watch: 'watch', watchFiles: ['src/*'] }
     })
     return bundle.run(true).then(result => {
-      console.log('WATCHER:', result.watcher.getWatched())
       isValidBundle(result, {
         id: 'watch',
         valid: true,

@@ -1,6 +1,6 @@
 {
   "name": "@bundles/core",
-  "version": "0.5.2",
+  "version": "0.5.3",
   "description": "Bundles is a file bundler -- similar to [WebPack](https://webpack.js.org/), [RollupJS](http://rollupjs.org), [Parcel](https://parceljs.org/), [PostCSS](https://postcss.org/), etc. -- **but for anything**. The main difference between Bundles and other bundlers is that while other bundlers compile to a specific type of output (like JavaScript, CSS, etc.), Bundles can compile to anything.",
   "keywords": ["brikcss", "bundles", "bundler", "build", "compiler", "transpiler", "task runner"],
   "license": "MIT",
