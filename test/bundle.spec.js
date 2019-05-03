@@ -163,7 +163,7 @@ describe('Bundle methods', () => {
       id: 'watch',
       input: ['src/bundles.js'],
       bundlers: [bundle => bundle],
-      options: { watch: 'watch', watchFiles: ['src/*'] }
+      options: { watch: 'watch', watchFiles: ['src/bundle*.js'] }
     })
     return bundle.run(true).then(result => {
       isValidBundle(result, {
@@ -174,7 +174,7 @@ describe('Bundle methods', () => {
         watcher: expect.any(Object),
         options: {
           watch: 'watch',
-          watchFiles: ['src/*']
+          watchFiles: ['src/bundle.js', 'src/bundler.js']
         }
       })
     })

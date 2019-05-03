@@ -4,6 +4,7 @@
 // Imports and environment setup.
 //
 
+import glob from 'globby'
 import log from 'loglevel'
 import merge from '@brikcss/merge'
 import path from 'path'
@@ -115,10 +116,16 @@ Bundle.prototype = {
           // Log the file change.
           log.info(`File changed: ${path.relative(cwd, path.join(bundle.options.cwd, filepath))}`)
           // Read in changed source file, if it exists in the output dictionary.
+          bundle.changed = []
           if (bundle.outputMap[filepath]) {
             bundle.outputMap[filepath] = new File(filepath, bundle)
-            bundle.changed = []
             bundle.changed.push(bundle.outputMap[filepath])
+          // If changed file exists in watchFiles, mark all output files as changed.
+          } else if (bundle.options.watchFiles.length && bundle.options.watchFiles.includes(filepath)) {
+            bundle.output.forEach((f, i) => {
+              bundle.output[i] = new File(bundle.output[i].source.path, bundle)
+              bundle.changed.push(bundle.output[i])
+            })
           }
           // Run bundle.
           return bundle.run().then((result) => {
@@ -140,6 +147,7 @@ Bundle.prototype = {
 
       // Watch other files in options.watchFiles.
       if (bundle.options.watchFiles && bundle.options.watchFiles.length) {
+        bundle.options.watchFiles = glob.sync(bundle.options.watchFiles, merge({}, bundle.options.glob, { ignore: (bundle.options.glob.ignore || []).concat(bundle.input) }))
         bundle.watcher.add(bundle.options.watchFiles)
       }
 
