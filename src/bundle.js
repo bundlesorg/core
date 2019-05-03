@@ -118,7 +118,7 @@ Bundle.prototype = {
           // Read in changed source file, if it exists in the output dictionary.
           bundle.changed = []
           if (bundle.outputMap[filepath]) {
-            bundle.outputMap[filepath] = new File(filepath, bundle)
+            bundle.outputMap[filepath] = Object.assign(bundle.outputMap[filepath], new File(filepath, bundle))
             bundle.changed.push(bundle.outputMap[filepath])
           // If changed file exists in watchFiles, mark all output files as changed.
           } else if (bundle.options.watchFiles.length && bundle.options.watchFiles.includes(filepath)) {
