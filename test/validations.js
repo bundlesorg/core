@@ -71,7 +71,7 @@ function isValidResult (result, expectedResult = {}) {
     dataFiles: expect.any(Array),
     bundles: expect.any(Array),
     options: expect.any(Object),
-    data: expect.any(Object)
+    data: typeof result.data === 'function' ? expect.any(Function) : expect.any(Object)
   }, expectedResult], { arrayStrategy: 'overwrite' })
   expect(result).toMatchObject(expectedResult)
 }

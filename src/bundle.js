@@ -196,7 +196,21 @@ function Bundle ({ id, input, bundlers, options, data } = {}, globals = {}) {
     frontMatter: {},
     chokidar: {}
   }, globals.options || {}, options || {}], { arrayStrategy: 'overwrite' })
-  this.data = merge([{}, globals.data || {}, data || {}], { arrayStrategy: 'overwrite' })
+
+  // Merge global data with bundle data.
+  if (!data || (!_.isObject(data) && typeof data !== 'function')) data = {}
+  if (!globals.data || (!_.isObject(globals.data) && typeof globals.data !== 'function')) globals.data = {}
+  if (typeof data === 'function' || typeof globals.data === 'function') {
+    this.data = (file) => {
+      return merge([
+        {},
+        typeof globals.data === 'function' ? globals.data(file) : globals.data,
+        typeof data === 'function' ? data(file) : data
+      ], { arrayStrategy: 'overwrite' })
+    }
+  } else {
+    this.data = merge([{}, globals.data, data], { arrayStrategy: 'overwrite' })
+  }
 
   // Convert input to an Array.
   if (typeof this.input === 'string' || _.isObject(this.input)) {

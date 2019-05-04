@@ -17,13 +17,11 @@ import _ from './utilities'
 // File.
 //
 
-File.prototype.mergeData = function (data) {
-  data = data || this.bundle.data
-  return merge({},
-    data,
-    this.source.data
-    // typeof this.data === 'function' ? this.data(this) : this.data
-  )
+File.prototype.mergeData = function () {
+  return merge([{},
+    this.source.data,
+    typeof this.bundle.data === 'function' ? this.bundle.data(this) : this.bundle.data || {}
+  ], { arrayStrategy: 'overwrite' })
 }
 
 /**
@@ -70,7 +68,7 @@ function File (input = '', bundle = {}) {
   this.content = this.source.content
   this.encoding = encoding
   this.isBuffer = Buffer.isBuffer(this.content)
-  this.data = this.mergeData(bundle.data)
+  this.data = this.mergeData()
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -88,7 +86,6 @@ function createFiles (input = '', bundle = {}) {
   const files = []
   // Make sure options is an object.
   if (!_.isObject(bundle.options)) bundle.options = {}
-  if (!_.isObject(bundle.data)) bundle.data = {}
   // Ensure input is a String or Object with path and content props.
   const isObject = _.isObject(input)
   if ((typeof input !== 'string' && !isObject) || (isObject && (!input.path || !input.content))) return files

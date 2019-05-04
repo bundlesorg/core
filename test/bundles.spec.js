@@ -104,7 +104,7 @@ describe('Bundles end to end', () => {
     expect.assertions(5)
     return Bundles.run({ bundles: [{
       id: 'global',
-      input: ['test/fixtures/simple.md'],
+      input: ['test/fixtures/front-matter.md'],
       bundlers: [bundle => bundle]
     }, {
       id: 'regional',
@@ -115,7 +115,7 @@ describe('Bundles end to end', () => {
       },
       bundlers: [bundle => bundle]
     }, {
-      id: 'local',
+      id: 'regional',
       input: ['test/fixtures/front-matter.md'],
       data: {
         regional: true,
@@ -139,7 +139,86 @@ describe('Bundles end to end', () => {
     })
   })
 
-  test.skip('run with global/regional data as a function', () => {})
+  test('run with global/regional data, as an Object or function', () => {
+    expect.assertions(7)
+    return Bundles.run({ bundles: [{
+      id: 'markdown',
+      input: ['test/fixtures/*.md'],
+      bundlers: [bundle => bundle]
+    }, {
+      id: 'regional',
+      input: ['src/bundle*.js'],
+      data: (file) => {
+        return {
+          bundle: 'custom-' + file.bundle.id,
+          source: file.source.path.replace('.js', '.nunya'),
+          ext: '.nunya',
+          winner: file.source.path.includes('bundles') ? 'regional' : 'none'
+        }
+      },
+      bundlers: [bundle => bundle]
+    }, {
+      id: 'last',
+      input: ['test/fixtures/front-matter.md'],
+      data: {
+        regional: true
+      },
+      bundlers: [bundle => bundle]
+    }],
+    data: (file) => {
+      return {
+        bundle: file.bundle.id,
+        source: file.source.path,
+        ext: path.extname(file.source.path)
+      }
+    } }).then(result => {
+      isSuccessfulResult(result)
+      const expected = [
+        [{
+          bundle: 'markdown',
+          source: 'test/fixtures/front-matter.md',
+          ext: '.md',
+          matter: true,
+          winner: 'local'
+        },
+        {
+          bundle: 'markdown',
+          source: 'test/fixtures/simple.md',
+          ext: '.md'
+        }
+        ],
+        [{
+          bundle: 'custom-regional',
+          source: 'src/bundle.nunya',
+          ext: '.nunya',
+          winner: 'none'
+        }, {
+          bundle: 'custom-regional',
+          source: 'src/bundler.nunya',
+          ext: '.nunya',
+          winner: 'none'
+        }, {
+          bundle: 'custom-regional',
+          source: 'src/bundles.nunya',
+          ext: '.nunya',
+          winner: 'regional'
+        }],
+        [{
+          bundle: 'last',
+          source: 'test/fixtures/front-matter.md',
+          ext: '.md',
+          matter: true,
+          regional: true,
+          winner: 'local'
+        }]
+      ]
+      result.bundles.forEach((bundle, bi) => {
+        bundle.output.forEach((file, fi) => {
+          expect(file.data).toMatchObject(expected[bi][fi])
+        })
+      })
+    })
+  })
 
   test('run with options.run (run only specified bundles)', () => {
     expect.assertions(5)
