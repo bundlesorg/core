@@ -126,14 +126,15 @@ module.exports = {
 
 #### Global config Object
 
-To easily share global `data` and/or `options` between bundles, you may export a global config Object, which has `options`, `bundles`, and `data` properties. The `options` and `data` Objects will be merged with each bundle in `bundles` (Existing `bundle.options` and `bundle.data` will override global configuration). The `bundles` property can be an Object or Array.
+To easily share global `data` and/or `options` between bundles, you may export a global config Object, which has `bundles` (required), `options`, `on`, and `data` properties. The `options` and `data` Objects will be merged with each bundle in `bundles` (Existing `bundle.options` and `bundle.data` will override global configuration). The `bundles` property can be an Object or Array.
 
 ```js
 module.exports = {
     bundles: [{...}, {...}, {...}],
     // bundles: {...},
     options: {},
-    data: {}
+    data: {},
+    on: {}
 }
 ```
 
@@ -145,6 +146,7 @@ Individual bundles can be configured [in a config file/Object as outlined above]
 -   **`input`** {String|[String]|Object|[Object]} _(required)_ Source input files. Each entry can be a String or Object. Strings are file or directory paths, globs accepted. An Object is a single file where `file.content` is a String or Buffer that represent the file's content, useful for passing a file's content directly. File Objects should also have `file.path`, the file's source path, which will likely be used when compiled by bundlers.
 -   **`bundlers`** {[String]|[Function]|[Object]} _(required)_ Array of bundlers. A String is a path to a node module, whereas a Function is the bundler function itself. An Object allows you to pass configuration to each bundler. `bundler.run` is the only required property, and can also be a String or Function. [Learn about authoring bundlers](#authoring-a-bundler).
 -   **`options`** {Object} Options for this individual bundle. See [configuring options](#configuration-options).
+-   **`on`** \{Object\} _[{}]_ Dictionary of hooks (callbacks) which allow you to tie into Bundles. [See Bundles hooks](#configuring-hooks).
 -   **`data`** {Object} Data for this individual bundle. This will be merged with each output file in the bundle. See [configuring data](#configuring-data).
 
 ### Configuration options
@@ -169,6 +171,12 @@ In addition to the config options listed above, Bundles CLI has the following co
 -   **`--bundlers`** {String|JSON Array} Bundlers. Can be a comma-separated String of node modules or a JSON Array. Must be used in combination with `<input>` files, but will be overridden if `--config` exists.
 -   **`--data`** {String|JSON Object} Global data. Can be a String filepath to a node module or a JSON Object.
 
+### Configuring hooks
+
+Bundles hooks allow you to tie into the Bundles workflow. Like other global properties, hooks can be configured globally via `Bundles.on` or per bundle via `bundles.on`. The following hooks are available.
+
+-   **`afterBundle`** \{Function\} `(Bundles) => {}` Called each time after all bundles are completed. Does not require a return value. This allows you to do things such as run/reload a development server, etc.
+
 ### Configuring data
 
 Data can be configured in the [global config Object](#global-config-object), in [individual bundles](#configuring-individual-bundles), or locally in file content using front matter. Front matter is parsed with [gray matter](https://github.com/jonschlinkert/gray-matter), which means front matter can exist in many languages (i.e., YAML, JSON, JS, etc.). All data is merged as follows:
@@ -190,6 +198,7 @@ The `Bundles` global Object is returned by all `Bundles` methods, and is formed 
 -   **`watchingDataFiles`** \{Boolean\} `true` if `Bundles` is watching config/data files.
 -   **`watcher`** \{Object\} If `watchingDataFiles` is true, this contains the [chokidar](https://github.com/paulmillr/chokidar) watcher.
 -   **`options`** \{Object\} Original [global configuration options](#configuration-options).
+-   **`on`** \{Object\} _[{}]_ Dictionary of hooks (callbacks) which allow you to tie into Bundles. [See Bundles hooks](#configuring-hooks).
 -   **`data`** \{Object\} Original [global data](#configuring-data).
 -   **`bundles`** \{[Object]\} [Compiled bundle Objects](#compiled-bundle-objects).
 

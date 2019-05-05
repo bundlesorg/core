@@ -114,25 +114,15 @@ function watchDataFiles () {
 }
 
 /**
- * Refresh Bundles from global configuration. If Bundles already has existing options, data, and/or
- * bundles, the configuration will be merged with it, in which case certain bundle properties will
- * not be overridden (e.g., bundle.watch, etc.).
+ * Initialize each bundle in an Array of bundle Objects.
  *
- * @param   {Object}  [config={}]  Global configuration object.
- * @return  {Object}  Bundles.
+ * @param   {Array}  [bundles=[]]  Array of bundle Objects to initialize.
+ * @return  {Array}  Initialized Array of bundles.
  */
-function refreshConfig (config = {}) {
-  Bundles.on = config.on || config.hooks || {}
-  Bundles.data = merge([Bundles.data, config.data || {}], { arrayStrategy: 'overwrite' })
-  Bundles.options = merge([Bundles.options, config.options || {}], { arrayStrategy: 'overwrite' })
-  Bundles.configFile = config.configFile || ''
-  Bundles.dataFiles = config.dataFiles || []
-
-  if (_.isObject(config.bundles)) config.bundles = [config.bundles]
+function createBundles (bundles = []) {
   // Create a new Bundle Object from each user configured bundle.
-  if (!config.bundles || !(config.bundles instanceof Array)) return Bundles
   const newBundles = []
-  config.bundles.forEach((bundle, index) => {
+  bundles.forEach((bundle, index) => {
     // The bundle must be an Object.
     if (!_.isObject(bundle)) {
       log.error(`Bundle [${index}] was not added, it must be an Object.`)
@@ -174,9 +164,8 @@ function refreshConfig (config = {}) {
     // Add bundle to Bundles.
     newBundles.push(bundle)
   })
-  Bundles.bundles = newBundles
 
-  return Bundles
+  return newBundles
 }
 
 /**
@@ -194,8 +183,15 @@ function createConfig (config) {
       : 'info'
   )
 
-  // Refresh Bundles and return it.
-  refreshConfig(config)
+  // Assign config props to Bundles.
+  Bundles.configFile = config.configFile || ''
+  Bundles.dataFiles = config.dataFiles || []
+  Bundles.options = config.options || {}
+  Bundles.on = config.on || {}
+  Bundles.data = config.data || {}
+  Bundles.bundles = createBundles(config.bundles)
+
+  // Return Bundles.
   return Bundles
 }
 

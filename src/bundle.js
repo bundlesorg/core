@@ -185,6 +185,8 @@ function Bundle ({ id, input, bundlers, options, data } = {}, globals = {}) {
   this.id = ((typeof id === 'number' || typeof id === 'string') ? id : nextId++).toString()
   this.input = input || []
   this.bundlers = bundlers || []
+
+  // Merge options.
   this.options = merge([{
     run: true,
     cwd: cwd,
@@ -196,6 +198,9 @@ function Bundle ({ id, input, bundlers, options, data } = {}, globals = {}) {
     frontMatter: {},
     chokidar: {}
   }, globals.options || {}, options || {}], { arrayStrategy: 'overwrite' })
+
+  // Merge on hooks.
+  this.on = Object.assign(this.on || {}, globals.on || {})
 
   // Merge global data with bundle data.
   if (!data || (!_.isObject(data) && typeof data !== 'function')) data = {}
