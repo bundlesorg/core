@@ -5,15 +5,27 @@
 //
 
 import log from 'loglevel'
-import fs from 'fs-extra'
 import path from 'path'
 import cosmiconfig from 'cosmiconfig'
 import merge from '@brikcss/merge'
 import _ from './utilities.js'
 
 // -------------------------------------------------------------------------------------------------
-// Methods and helper functions.
+// Exports and helper functions.
 //
+
+const defaultOptions = {
+  run: true,
+  cwd: process.cwd(),
+  watch: false,
+  watchFiles: [],
+  loglevel: 'info',
+  glob: {
+    dot: true
+  },
+  frontMatter: {},
+  chokidar: {}
+}
 
 /**
  * Parse bundles configuration.
@@ -22,68 +34,61 @@ import _ from './utilities.js'
  * @return {Object}  Bundles dictionary Object.
  */
 function parseConfig (config = '') {
-  // Make sure config is an object and properly formed.
-  if (!_.isObject(config) || config.bundles === undefined) config = { bundles: config }
-  if (!_.isObject(config.data)) config.data = config.data || {}
-  config.options = merge([{
-    run: true,
-    cwd: process.cwd(),
-    watch: false,
-    loglevel: 'info',
-    glob: {
-      dot: true
-    },
-    frontMatter: {},
-    chokidar: {}
-  }, config.options || {}], { arrayStrategy: 'overwrite' })
+  // Make sure config is a properly formed global config object.
+  config = normalizeConfig(config)
 
-  // If bundles is a String, treat it as a filepath to the config file.
-  if (typeof config.bundles === 'string') {
-    // The bundles String is split at the first ":" character and the 2nd item in the split, if
-    // existent, is the run property.
-    let configFile = config.bundles.split(':')
-    if (!config.options.run && configFile[1]) config.options.run = configFile[1]
-    configFile = configFile[0]
+  // Make sure all global props exist and return the config.
+  if (!_.isObject(config.options)) config.options = {}
+  if (!_.isObject(config.data) && typeof config.data !== 'function') config.data = {}
+  if (!_.isObject(config.on)) config.on = {}
+  config.options = merge([{}, defaultOptions, config.options], { arrayStrategy: 'overwrite' })
 
-    // Get the config file.
-    configFile = resolveConfigFile(config.bundles, config.options.cwd)
-    if (!configFile) throw new Error(`Config file not found. ${config}`)
-
-    // Destructure configFile and add config and its child data files to watcher so that when they
-    // change, all bundles can rerun with refreshed data.
-    config.configFile = path.relative(config.options.cwd, configFile.filepath)
+  // Get config file children data files if a config file exists.
+  if (config.configFile) {
     const configFilepath = path.resolve(config.configFile)
-    config.dataFiles = _.getChildrenModules(configFilepath)
-    config.dataFiles = [configFilepath].concat(config.dataFiles)
-    configFile = configFile.config
-    if (_.isObject(configFile) && configFile.bundles) {
-      config.bundles = configFile.bundles;
-      ['options', 'data'].forEach(key => {
-        if (!configFile[key]) return
-        config[key] = merge([config[key] || {}, configFile[key]], { arrayStrategy: 'overwrite' })
-      })
-    } else {
-      config.bundles = configFile
-    }
+    config.dataFiles = [configFilepath].concat(_.getChildrenModules(configFilepath))
   }
 
-  // Ensure bundles is an Array.
-  if (_.isObject(config.bundles)) {
-    // Convert a single bundle object to an Array.
-    if (config.bundles.input || config.bundles.bundlers) {
-      config.bundles = [config.bundles]
-    // Convert a bundle Object dictionary to an Array.
-    } else {
-      config.bundles = Object.keys(config.bundles).map((id, i) => {
-        const bundle = config.bundles[id]
+  if (!(config.bundles instanceof Array)) throw new Error('Bundles must be configured as an Object or Object[].')
+
+  // Return config.
+  return config
+}
+
+/**
+ * Normalize user configuration -- with any config file already resolved -- to a global config
+ * Object with bundles, options, and data properties.
+ *
+ * @param {Array|Object} config  User configuration. Can be a global config object, a bundles array,
+ *     a single array, or an object dictionary.
+ * @return {Object}  Global config object.
+ */
+function normalizeConfig (config) {
+  // If config is a String, resolve it as a config file.
+  if (typeof config === 'string' || config === undefined) config = resolveConfigFile(config)
+  // Ensure config is an Object with the bundles property.
+  if (!_.isObject(config)) config = { bundles: config }
+  // If the bundles property exists, ensure it's an Array and return the config.
+  if (config.hasOwnProperty('bundles')) {
+    // If config.bundles is a String, resolve it.
+    if (typeof config.bundles === 'string' || config.bundles === undefined) {
+      const configFile = resolveConfigFile(config.bundles)
+      config = merge([{}, resolveConfigFile(config.bundles), config, { bundles: configFile.bundles }], { arrayStrategy: 'overwrite' })
+    }
+    if (!(config.bundles instanceof Array)) config.bundles = [config.bundles]
+  // Convert a single bundle object to a bundles Array.
+  } else if (config.input || config.bundlers) {
+    config = { bundles: [config] }
+  // Convert a bundle Object dictionary to an Array.
+  } else {
+    config = {
+      bundles: Object.keys(config).map((id, i) => {
+        const bundle = config[id]
         bundle.id = id
         return bundle
       })
     }
   }
-  if (!(config.bundles instanceof Array)) throw new Error('Bundles must be configured as an Object or Object[].')
-
-  // Return config.
   return config
 }
 
@@ -95,24 +100,39 @@ function parseConfig (config = '') {
  */
 function resolveConfigFile (filepath = '', cwd) {
   const config = cosmiconfig('bundles')
+  let run
   let configFile
+  cwd = cwd || process.cwd()
 
-  // If filepath === '', search for a default config file.
+  // filepath can be separated with a ':' and have a list of bundle IDs to run. Separate bundle IDs from the filepath here.
+  if (filepath.indexOf(':') > -1) {
+    configFile = filepath.split(':')
+    if (configFile[1]) run = configFile[1]
+    filepath = configFile[0]
+  }
+
+  // If there's no filepath, search for a default config file.
   if (!filepath) {
     configFile = config.searchSync('')
   // If filepath exists, load that specific file.
   } else if (typeof filepath === 'string') {
-    if (!fs.pathExistsSync(filepath)) return configFile
     configFile = config.loadSync(filepath)
   }
-  // Notify user of config file.
-  log.info(`Using config file: ${path.relative(cwd || process.cwd(), configFile.filepath)}`)
 
-  return configFile
+  // Properly form the configFile.
+  configFile.config = normalizeConfig(configFile.config)
+  configFile.config.configFile = configFile.filepath
+  if (!_.isObject(configFile.config.options)) configFile.config.options = {}
+  configFile.config.options.run = run
+
+  // Notify user of config file and return it.
+  if (!configFile) throw new Error(`Config file not found. ${filepath}`)
+  log.info(`Using config file: ${path.relative(cwd, configFile.filepath)}`)
+  return configFile.config
 }
 
 // -------------------------------------------------------------------------------------------------
 // Exports.
 //
 
-export { parseConfig }
+export { parseConfig, defaultOptions }

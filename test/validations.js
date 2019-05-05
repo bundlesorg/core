@@ -64,14 +64,15 @@ function isValidResult (result, expectedResult = {}) {
   expectedResult = merge([{
     initialized: true,
     success: expect.any(Boolean),
-    // watching: expect.any(Boolean),
+    watching: expect.any(Boolean),
     watchingDataFiles: expect.any(Boolean),
     watcher: expect.any(Object),
     configFile: expect.any(String),
     dataFiles: expect.any(Array),
     bundles: expect.any(Array),
     options: expect.any(Object),
-    data: typeof result.data === 'function' ? expect.any(Function) : expect.any(Object)
+    data: typeof result.data === 'function' ? expect.any(Function) : expect.any(Object),
+    on: expect.any(Object)
   }, expectedResult], { arrayStrategy: 'overwrite' })
   expect(result).toMatchObject(expectedResult)
 }

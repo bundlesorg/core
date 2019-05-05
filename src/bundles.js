@@ -38,7 +38,7 @@ Bundles.reset()
 /**
  * Run bundles from user configuration.
  *
- * @param {string} [config='']  User configuration object.
+ * @param {string} [config='']  User configuration.
  * @param {Object} [options={}]  Internal options.
  * @param {boolean} [options.isRebundle=false]  Indicates if this is a rebundle.
  * @param {Date} options.start  Task's runtime start Date.
@@ -69,7 +69,9 @@ function bundle ({ bundleIds, start }) {
     return bundle.run()
   })).then(() => {
     Bundles.success = Bundles.bundles.every(bundle => !!bundle.success)
+    Bundles.watching = Bundles.bundles.some(bundle => bundle.watching)
     log.info((Bundles.success ? '[ok] Success!' : '[!!] Failed. Check errors.') + (start ? ` (${_.getTimeDiff(start)})` : ''))
+    if (typeof Bundles.on.afterBundle === 'function') Bundles.on.afterBundle(Bundles)
     return Bundles
   }).catch(error => {
     log.error(error)
@@ -120,8 +122,9 @@ function watchDataFiles () {
  * @return  {Object}  Bundles.
  */
 function refreshConfig (config = {}) {
-  Bundles.data = merge([Bundles.data, config.data], { arrayStrategy: 'overwrite' })
-  Bundles.options = merge([Bundles.options, config.options], { arrayStrategy: 'overwrite' })
+  Bundles.on = config.on || config.hooks || {}
+  Bundles.data = merge([Bundles.data, config.data || {}], { arrayStrategy: 'overwrite' })
+  Bundles.options = merge([Bundles.options, config.options || {}], { arrayStrategy: 'overwrite' })
   Bundles.configFile = config.configFile || ''
   Bundles.dataFiles = config.dataFiles || []
 
@@ -202,7 +205,7 @@ function createConfig (config) {
 function resetBundles () {
   Bundles.initialized = true
   Bundles.success = false
-  // Bundles.watching = false
+  Bundles.watching = false
   Bundles.watchingDataFiles = false
   Bundles.watcher = null
   Bundles.configFile = ''
@@ -211,19 +214,9 @@ function resetBundles () {
   Bundles.bundles = []
   // @todo Create files Map.
   // Bundles.files = Bundles.files instanceof Map ? Bundles.files.clear() : new Map()
-  Bundles.options = {
-    run: true,
-    cwd: process.cwd(),
-    watch: false,
-    watchFiles: [],
-    loglevel: 'info',
-    glob: {
-      dot: true
-    },
-    frontMatter: {},
-    chokidar: {}
-  }
+  Bundles.options = {}
   Bundles.data = {}
+  Bundles.on = {}
   return Bundles
 }
 

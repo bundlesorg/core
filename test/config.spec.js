@@ -51,7 +51,7 @@ describe('Bundles global configurations', () => {
 
   test('throw error if config file doesn\'t exist', () => {
     expect.assertions(1)
-    expect(() => Bundles.create('./.bundlesrc-nope.js')).toThrow(/Config file not found./)
+    expect(() => Bundles.create('./.bundlesrc-nope.js')).toThrow(/ENOENT: no such file or directory/)
   })
 
   test('create config from a global config Object', () => {
