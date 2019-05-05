@@ -47,6 +47,7 @@ function parseConfig (config = '') {
   if (config.configFile) {
     const configFilepath = path.resolve(config.configFile)
     config.dataFiles = [configFilepath].concat(_.getChildrenModules(configFilepath))
+    log.info(`Using config file: ${path.relative(config.options.cwd, config.configFile)}`)
   }
 
   if (!(config.bundles instanceof Array)) throw new Error('Bundles must be configured as an Object or Object[].')
@@ -125,9 +126,7 @@ function resolveConfigFile (filepath = '', cwd) {
   if (!_.isObject(configFile.config.options)) configFile.config.options = {}
   configFile.config.options.run = run
 
-  // Notify user of config file and return it.
-  if (!configFile) throw new Error(`Config file not found. ${filepath}`)
-  log.info(`Using config file: ${path.relative(cwd, configFile.filepath)}`)
+  // Return it.
   return configFile.config
 }
 
