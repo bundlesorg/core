@@ -40,7 +40,9 @@ function File (input = '', bundle = {}) {
 
   // Read file with gray-matter and set source props.
   const inputIsObject = _.isObject(input)
-  const content = inputIsObject ? input.content : fs.readFileSync(path.join(options.cwd, input))
+  let inputPath = inputIsObject ? input.path : input
+  inputPath = path.isAbsolute(inputPath) ? inputPath : path.join(options.cwd, inputPath)
+  const content = inputIsObject ? input.content : fs.readFileSync(inputPath)
   const encoding = getEncoding(content)
 
   // Create file.source, patterned after gray-matter's return object
@@ -49,7 +51,7 @@ function File (input = '', bundle = {}) {
   if (encoding === 'utf8') {
     this.source = inputIsObject
       ? matter(input.content, options.frontMatter)
-      : matter.read(path.join(options.cwd, input), options)
+      : matter.read(inputPath, options)
   } else {
     this.source = {
       content,

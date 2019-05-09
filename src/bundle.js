@@ -47,7 +47,7 @@ Bundle.prototype = {
    * @param {Boolean} ?isTest=false? Will terminate when true.
    * @return {Object}  Compiled bundle.
    */
-  run (isTest = false) {
+  run ({ isTest = false, start = new Date() } = {}) {
     const bundle = this
 
     // Do not run it if it's invalid.
@@ -81,7 +81,12 @@ Bundle.prototype = {
     // A bundle is marked as successful if all bundlers successfully complete.
     }, Promise.resolve(bundle)).then(bundle => {
       bundle.success = bundle.bundlers.every(bundler => bundler.success)
-      return bundle.watch(isTest)
+      if (bundle.success) {
+        bundle.changed = []
+        bundle.removed = []
+      }
+      log.info(`${bundle.watching ? 'Rebundled' : 'Bundled'} [${bundle.id}] (${_.getTimeDiff(start)})`)
+      return bundle.watch({ isTest })
     // If a bundle errors out, mark it and log error.
     }).catch(error => {
       bundle.success = false
@@ -90,13 +95,86 @@ Bundle.prototype = {
     })
   },
 
+  update (filepaths, rebundle = true) {
+    const bundle = this
+    const start = new Date()
+    // Ensure filepaths is an array.
+    if (_.trueType(filepaths) !== 'array') filepaths = [filepaths]
+    // Iterate through filepaths and add to bundle.output, bundle.outputMap, and bundle.changed.
+    filepaths.forEach(filepath => {
+      // Log the file change.
+      log.info(`File changed: ${path.relative(cwd, path.join(bundle.options.cwd, filepath))}`)
+      // Read in changed source file, if it exists in the output dictionary.
+      if (bundle.outputMap[filepath]) {
+        bundle.outputMap[filepath] = Object.assign(bundle.outputMap[filepath], new File(filepath, bundle))
+        bundle.changed.push(bundle.outputMap[filepath])
+      // If changed file exists in watchFiles, mark all output files as changed.
+      } else if (bundle.options.watchFiles.length && bundle.options.watchFiles.includes(filepath)) {
+        bundle.output.forEach((f, i) => {
+          bundle.output[i] = new File(bundle.output[i].source.path, bundle)
+          bundle.changed.push(bundle.output[i])
+        })
+      }
+    })
+    // Run bundle.
+    return rebundle ? bundle.run({ start }) : Promise.resolve(bundle)
+  },
+
+  /**
+   * Add one or more files to the bundle.
+   *
+   * @param {String|String[]} filepaths  Files to add.
+   * @param {boolean} [rebundle=true]  Whether to rebundle after removing.
+   * @return {Promise}  Promise to return the bundle.
+   */
+  addFile (filepaths, rebundle = true) {
+    const bundle = this
+    const start = new Date()
+    // Ensure filepaths is an array.
+    if (_.trueType(filepaths) !== 'array') filepaths = [filepaths]
+    // Iterate through filepaths and add to bundle.output, bundle.outputMap, and bundle.changed.
+    filepaths.forEach(filepath => {
+      log.info(`File added: ${path.relative(cwd, path.join(bundle.options.cwd, filepath))}`)
+      bundle.output.push(new File(filepath, bundle))
+      const lastOutput = bundle.output[bundle.output.length - 1]
+      bundle.outputMap[filepath] = lastOutput
+      bundle.changed.push(lastOutput)
+    })
+    // Rebundle and/or return the bundle.
+    return rebundle ? bundle.run({ start }) : Promise.resolve(bundle)
+  },
+
+  /**
+   * Remove one or more files from the bundle.
+   *
+   * @param {String|String[]} filepaths  Files to remove.
+   * @param {Boolean} [rebundle=true]  Whether to rebundle after removing.
+   * @return {Promise}  Promise to return the bundle.
+   */
+  removeFile (filepaths, rebundle = true) {
+    const bundle = this
+    const start = new Date()
+    // Ensure filepaths is an array.
+    if (_.trueType(filepaths) !== 'array') filepaths = [filepaths]
+    // Remove filepaths from bundle.output, bundle.outputMap, and bundle.changed.
+    filepaths.forEach(filepath => {
+      log.info(`File removed: ${path.relative(cwd, path.join(bundle.options.cwd, filepath))}`)
+      bundle.removed.push(Object.assign({}, bundle.outputMap[filepath]))
+      delete bundle.outputMap[filepath]
+      bundle.output.splice(bundle.output.findIndex(f => f.source.path === filepath), 1)
+      bundle.input.splice(bundle.input.findIndex(f => f === filepath), 1)
+    })
+    // Rebundle and/or return the bundle.
+    return rebundle ? bundle.run({ start }) : Promise.resolve(bundle)
+  },
+
   /**
    * Watch bundle and recompile when source input changes.
    *
    * @param {Boolean} ?isTest=false? Will terminate when true.
    * @return {Object} Compiled bundle.
    */
-  watch (isTest = false) {
+  watch ({ isTest = false }) {
     const bundle = this
     if (bundle.watching) return Promise.resolve(bundle)
 
@@ -108,36 +186,15 @@ Bundle.prototype = {
         return resolve(bundle)
       }
 
-      bundle.watcher = chokidar.watch(bundle.input, bundle.options.chokidar)
+      bundle.watcher = chokidar.watch(bundle.watchInput, bundle.options.chokidar)
       bundle.watcher
-        .on('change', (filepath) => {
-          const start = new Date()
-          // Don't run if watcher is not ready yet.
-          if (!bundle.watching) return
-          // Log the file change.
-          log.info(`File changed: ${path.relative(cwd, path.join(bundle.options.cwd, filepath))}`)
-          // Read in changed source file, if it exists in the output dictionary.
-          bundle.changed = []
-          if (bundle.outputMap[filepath]) {
-            bundle.outputMap[filepath] = Object.assign(bundle.outputMap[filepath], new File(filepath, bundle))
-            bundle.changed.push(bundle.outputMap[filepath])
-          // If changed file exists in watchFiles, mark all output files as changed.
-          } else if (bundle.options.watchFiles.length && bundle.options.watchFiles.includes(filepath)) {
-            bundle.output.forEach((f, i) => {
-              bundle.output[i] = new File(bundle.output[i].source.path, bundle)
-              bundle.changed.push(bundle.output[i])
-            })
-          }
-          // Run bundle.
-          return bundle.run().then((result) => {
-            log.info(`Rebundled [${bundle.id}] (${_.getTimeDiff(start)})`)
-            return result
-          })
-        })
+        .on('add', (filepath) => bundle.watching && bundle.addFile(filepath))
+        .on('change', (filepath) => bundle.watching && bundle.update(filepath))
+        .on('unlink', (filepath) => bundle.watching && bundle.removeFile(filepath))
         .on('error', reject)
         .on('ready', () => {
+          // Flag bundle and notify user.
           bundle.watching = true
-          // Notify user.
           log.info(`Watching [${bundle.id}]...`)
         })
 
@@ -180,7 +237,9 @@ function Bundle ({ id, input, bundlers, options, data } = {}, globals = {}) {
   this.watching = false
   this.watcher = null
   this.changed = []
+  this.removed = []
   this.output = []
+  this.watchInput = []
 
   // Set user configurable props.
   this.id = ((typeof id === 'number' || typeof id === 'string') ? id : nextId++).toString()
@@ -212,8 +271,14 @@ function Bundle ({ id, input, bundlers, options, data } = {}, globals = {}) {
   if (typeof this.input === 'string' || _.isObject(this.input)) {
     this.input = [this.input]
   }
-  // If input still isn't an Array, return it as invalid.
-  if (!(this.input instanceof Array)) return
+  if (_.trueType(this.input) !== 'array') return
+  // Cache the original input sources as an Array so the watcher can watch globs.
+  this.watchInput = this.input.reduce((result, item) => {
+    const type = _.trueType(item)
+    if (type === 'object' && item.path) result.push(item.path)
+    if (type === 'string' || type === 'array') result.push(item)
+    return result
+  }, [])
   // Use options.cwd on options.glob.cwd.
   if (this.options && this.options.glob && !this.options.glob.cwd) this.options.glob.cwd = this.options.cwd
 
@@ -237,7 +302,8 @@ function Bundle ({ id, input, bundlers, options, data } = {}, globals = {}) {
   //  - output is a non-empty [].
   //  - bundlers is a non-empty [] with at least one valid bundler.
   // -------------------------
-  this.valid = this.output instanceof Array &&
+  this.valid = this.input instanceof Array &&
+    this.output instanceof Array &&
     this.output.length > 0 &&
     this.bundlers instanceof Array &&
     this.bundlers.length > 0 &&

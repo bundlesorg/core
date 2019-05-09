@@ -159,13 +159,12 @@ describe('Bundle methods', () => {
   test('watch a bundle', () => {
     expect.assertions(1)
     const bundle = new Bundle({
-      watching: true,
       id: 'watch',
       input: ['src/bundles.js'],
       bundlers: [bundle => bundle],
       options: { watch: 'watch', watchFiles: ['src/bundle*.js'] }
     })
-    return bundle.run(true).then(result => {
+    return bundle.run({ isTest: true }).then(result => {
       isValidBundle(result, {
         id: 'watch',
         valid: true,

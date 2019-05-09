@@ -9,8 +9,17 @@ import path from 'path'
  * @return {Boolean}  Whether value is a true Object.
  */
 function isObject (value) {
-  if (value === null) return false
-  return typeof value === 'object' && value.constructor === Object
+  return trueType(value) === 'object'
+}
+
+/**
+ * Return true type of value.
+ *
+ * @param {any} value  The value to check.
+ * @return {String}  The value's type as a lowercase string.
+ */
+function trueType (value) {
+  return Object.prototype.toString.call(value).slice(8, -1).toLowerCase()
 }
 
 /**
@@ -119,6 +128,7 @@ function getTimeDiff (start, { end, suffix = 's' } = {}) {
 
 export default {
   isObject,
+  trueType,
   convertStringToArray,
   idExistsInValue,
   poll,
