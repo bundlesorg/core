@@ -15,7 +15,9 @@ import _ from './utilities'
  * Bundler constructor.
  * @param {Object} bundler
  */
-function Bundler (bundler = {}) {
+function Bundler (bundler = {}, bundle = {}) {
+  bundle.modules = bundle.modules || []
+
   // Ensure bundler is an Object.
   if (!_.isObject(bundler)) this.run = bundler
 
@@ -25,6 +27,7 @@ function Bundler (bundler = {}) {
   // Normalize bundler.
   this.valid = true
   this.success = false
+  this.id = ''
 
   // Validate bundler.run.
   if (!this.run || !['string', 'function'].includes(typeof this.run)) {
@@ -34,7 +37,9 @@ function Bundler (bundler = {}) {
   if (typeof this.run === 'string') {
     // If bundler.run is a relative path, resolve the path.
     if (this.run.indexOf('./') === 0 || this.run.indexOf('../') === 0) {
-      this.run = path.resolve(this.run)
+      const bundlerModule = path.resolve(this.run)
+      this.id = this.run = bundlerModule
+      if (!bundle.modules.includes(bundlerModule)) bundle.modules.push(bundlerModule)
     }
 
     // Require module.

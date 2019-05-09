@@ -4,7 +4,6 @@
 // Imports and environment setup.
 //
 
-import glob from 'globby'
 import log from 'loglevel'
 import merge from '@brikcss/merge'
 import path from 'path'
@@ -112,6 +111,11 @@ Bundle.prototype = {
           bundle.output[i] = new File(bundle.output[i].source.path, bundle)
           bundle.changed.push(bundle.output[i])
         })
+      // If it's a bundler file, refresh the bundler.
+      } else if (bundle.modules.length && bundle.modules.includes(filepath)) {
+        let bundlerIndex = bundle.bundlers.findIndex((b, i) => b.id === filepath)
+        delete require.cache[filepath]
+        bundle.bundlers[bundlerIndex].run = _.requireModule(filepath)
       }
     })
     // Run bundle.
@@ -185,7 +189,7 @@ Bundle.prototype = {
       }
 
       // Create watcher.
-      bundle.watcher = chokidar.watch(bundle.watchInput.concat(bundle.options.watchFiles || []), bundle.options.chokidar)
+      bundle.watcher = chokidar.watch(bundle.watchInput.concat(bundle.options.watchFiles || [], bundle.modules), bundle.options.chokidar)
 
       // Add watcher events.
       bundle.watcher
@@ -235,6 +239,7 @@ function Bundle ({ id, input, bundlers, options, data } = {}, globals = {}) {
   this.removed = []
   this.output = []
   this.watchInput = []
+  this.modules = []
 
   // Set user configurable props.
   this.id = ((typeof id === 'number' || typeof id === 'string') ? id : nextId++).toString()
@@ -288,7 +293,7 @@ function Bundle ({ id, input, bundlers, options, data } = {}, globals = {}) {
   //
   // Create bundlers.
   // ----------------
-  this.bundlers = this.bundlers.map(bundler => new Bundler(bundler))
+  this.bundlers = this.bundlers.map(bundler => new Bundler(bundler, this))
 
   //
   // Check if bundle is valid.
