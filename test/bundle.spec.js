@@ -173,7 +173,7 @@ describe('Bundle methods', () => {
         watcher: expect.any(Object),
         options: {
           watch: 'watch',
-          watchFiles: ['src/bundle.js', 'src/bundler.js']
+          watchFiles: ['src/bundle*.js']
         }
       })
     })

@@ -62,8 +62,6 @@ Bundle.prototype = {
       return Promise.resolve(bundle)
     }
 
-    // Log it.
-    if (!bundle.watching) log.info(`Bundling [${bundle.id}]...`)
     // Reduce bundlers to a series of promises that run in order.
     return bundle.bundlers.reduce((promise, bundler, i) => {
       return promise.then((bundle) => {
@@ -186,7 +184,10 @@ Bundle.prototype = {
         return resolve(bundle)
       }
 
-      bundle.watcher = chokidar.watch(bundle.watchInput, bundle.options.chokidar)
+      // Create watcher.
+      bundle.watcher = chokidar.watch(bundle.watchInput.concat(bundle.options.watchFiles || []), bundle.options.chokidar)
+
+      // Add watcher events.
       bundle.watcher
         .on('add', (filepath) => bundle.watching && bundle.addFile(filepath))
         .on('change', (filepath) => bundle.watching && bundle.update(filepath))
@@ -196,17 +197,12 @@ Bundle.prototype = {
           // Flag bundle and notify user.
           bundle.watching = true
           log.info(`Watching [${bundle.id}]...`)
+          return resolve(bundle)
         })
 
       // Watch config/data files.
       if (bundle.dataFiles) {
         bundle.watchDataFiles()
-      }
-
-      // Watch other files in options.watchFiles.
-      if (bundle.options.watchFiles && bundle.options.watchFiles.length) {
-        bundle.options.watchFiles = glob.sync(bundle.options.watchFiles, merge({}, bundle.options.glob, { ignore: (bundle.options.glob.ignore || []).concat(bundle.input) }))
-        bundle.watcher.add(bundle.options.watchFiles)
       }
 
       // If this is a test, terminate this after the watcher is initialized.
@@ -216,7 +212,6 @@ Bundle.prototype = {
           return resolve(bundle)
         })
       }
-      return resolve(bundle)
     })
   }
 }
