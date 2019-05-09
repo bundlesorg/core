@@ -11,6 +11,7 @@ import path from 'path'
 import chokidar from 'chokidar'
 import Bundler from './bundler.js'
 import File from './file.js'
+import { defaultOptions } from './config.js'
 import _ from './utilities.js'
 
 // Cache cwd.
@@ -187,17 +188,7 @@ function Bundle ({ id, input, bundlers, options, data } = {}, globals = {}) {
   this.bundlers = bundlers || []
 
   // Merge options.
-  this.options = merge([{
-    run: true,
-    cwd: cwd,
-    watch: false,
-    loglevel: 'info',
-    glob: {
-      dot: true
-    },
-    frontMatter: {},
-    chokidar: {}
-  }, globals.options || {}, options || {}], { arrayStrategy: 'overwrite' })
+  this.options = merge([{}, defaultOptions, globals.options || {}, options || {}], { arrayStrategy: 'overwrite' })
 
   // Merge on hooks.
   this.on = Object.assign(this.on || {}, globals.on || {})
