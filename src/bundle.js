@@ -115,6 +115,10 @@ Bundle.prototype = {
         let bundlerIndex = bundle.bundlers.findIndex((b, i) => b.id === filepath)
         delete require.cache[filepath]
         bundle.bundlers[bundlerIndex].run = _.requireModule(filepath)
+        bundle.output.forEach(file => {
+          file.content = file.source.content
+        })
+        bundle.changed = bundle.output
       }
     })
     // Run bundle.
