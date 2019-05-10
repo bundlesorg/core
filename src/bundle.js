@@ -99,7 +99,7 @@ Bundle.prototype = {
     // Iterate through filepaths and add to bundle.output, bundle.outputMap, and bundle.changed.
     filepaths.forEach(filepath => {
       // Log the file change.
-      log.info(`File changed: ${path.relative(cwd, path.join(bundle.options.cwd, filepath))}`)
+      log.info(`File changed: ${path.relative(cwd, filepath)}`)
       // Read in changed source file, if it exists in the output dictionary.
       if (bundle.outputMap[filepath]) {
         bundle.outputMap[filepath] = Object.assign(bundle.outputMap[filepath], new File(filepath, bundle))
@@ -135,7 +135,7 @@ Bundle.prototype = {
     if (_.trueType(filepaths) !== 'array') filepaths = [filepaths]
     // Iterate through filepaths and add to bundle.output, bundle.outputMap, and bundle.changed.
     filepaths.forEach(filepath => {
-      log.info(`File added: ${path.relative(cwd, path.join(bundle.options.cwd, filepath))}`)
+      log.info(`File added: ${path.relative(cwd, filepath)}`)
       bundle.output.push(new File(filepath, bundle))
       const lastOutput = bundle.output[bundle.output.length - 1]
       bundle.outputMap[filepath] = lastOutput
@@ -159,7 +159,7 @@ Bundle.prototype = {
     if (_.trueType(filepaths) !== 'array') filepaths = [filepaths]
     // Remove filepaths from bundle.output, bundle.outputMap, and bundle.changed.
     filepaths.forEach(filepath => {
-      log.info(`File removed: ${path.relative(cwd, path.join(bundle.options.cwd, filepath))}`)
+      log.info(`File removed: ${path.relative(cwd, filepath)}`)
       bundle.removed.push(Object.assign({}, bundle.outputMap[filepath]))
       delete bundle.outputMap[filepath]
       bundle.output.splice(bundle.output.findIndex(f => f.source.path === filepath), 1)
