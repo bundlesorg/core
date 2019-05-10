@@ -43,10 +43,9 @@ Bundle.prototype = {
   /**
    * Run a single bundle.
    *
-   * @param {Boolean} ?isTest=false? Will terminate when true.
    * @return {Object}  Compiled bundle.
    */
-  run ({ isTest = false, start = new Date() } = {}) {
+  run ({ start = new Date() } = {}) {
     const bundle = this
 
     // Do not run it if it's invalid.
@@ -83,7 +82,7 @@ Bundle.prototype = {
         bundle.removed = []
       }
       log.info(`${bundle.watching ? 'Rebundled' : 'Bundled'} [${bundle.id}] (${_.getTimeDiff(start)})`)
-      return bundle.watch({ isTest })
+      return bundle.watch()
     // If a bundle errors out, mark it and log error.
     }).catch(error => {
       bundle.success = false
@@ -173,10 +172,9 @@ Bundle.prototype = {
   /**
    * Watch bundle and recompile when source input changes.
    *
-   * @param {Boolean} ?isTest=false? Will terminate when true.
-   * @return {Object} Compiled bundle.
+   * @return {Promise}  Promise for compiled bundle.
    */
-  watch ({ isTest = false }) {
+  watch () {
     const bundle = this
     if (bundle.watching) return Promise.resolve(bundle)
 
@@ -200,21 +198,14 @@ Bundle.prototype = {
         .on('ready', () => {
           // Flag bundle and notify user.
           bundle.watching = true
-          log.info(`Watching [${bundle.id}]...`)
+          // Call the on.watching() hook.
+          if (typeof bundle.on.watching === 'function') bundle.on.watching(bundle)
           return resolve(bundle)
         })
 
       // Watch config/data files.
       if (bundle.dataFiles) {
         bundle.watchDataFiles()
-      }
-
-      // If this is a test, terminate this after the watcher is initialized.
-      if (isTest) {
-        return _.poll(() => bundle.watching, 5000, 200).then(() => {
-          bundle.watcher.close()
-          return resolve(bundle)
-        })
       }
     })
   }
@@ -226,7 +217,7 @@ Bundle.prototype = {
  * @param {Object} config  Bundle configuration.
  * @param {Object} globals  Bundles global configuration.
  */
-function Bundle ({ id, input, bundlers, options, data } = {}, globals = {}) {
+function Bundle ({ id, input, bundlers, options, data, on } = {}, globals = {}) {
   //
   // Set defaults and normalize.
   // -------------
@@ -250,7 +241,7 @@ function Bundle ({ id, input, bundlers, options, data } = {}, globals = {}) {
   this.options = merge([{}, defaultOptions, globals.options || {}, options || {}], { arrayStrategy: 'overwrite' })
 
   // Merge on hooks.
-  this.on = Object.assign(this.on || {}, globals.on || {})
+  this.on = Object.assign(on || {}, globals.on || {})
 
   // Merge global data with bundle data.
   if (!data || (!_.isObject(data) && typeof data !== 'function')) data = {}

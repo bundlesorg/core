@@ -156,26 +156,33 @@ describe('Bundle methods', () => {
     })
   })
 
-  test('watch a bundle', () => {
+  test('watch a bundle', (done) => {
     expect.assertions(1)
     const bundle = new Bundle({
       id: 'watch',
       input: ['src/bundles.js'],
       bundlers: [bundle => bundle],
-      options: { watch: 'watch', watchFiles: ['src/bundle*.js'] }
-    })
-    return bundle.run({ isTest: true }).then(result => {
-      isValidBundle(result, {
-        id: 'watch',
-        valid: true,
-        success: true,
-        watching: true,
-        watcher: expect.any(Object),
-        options: {
-          watch: 'watch',
-          watchFiles: ['src/bundle*.js']
+      options: { watch: 'watch', watchFiles: ['src/bundle*.js'] },
+      on: {
+        watching (bundle) {
+          bundle.watcher.close()
+          isValidBundle(bundle, {
+            id: 'watch',
+            valid: true,
+            success: true,
+            watching: true,
+            watcher: {
+              closed: true
+            },
+            options: {
+              watch: 'watch',
+              watchFiles: ['src/bundle*.js']
+            }
+          })
+          done()
         }
-      })
+      }
     })
+    bundle.run()
   })
 })
