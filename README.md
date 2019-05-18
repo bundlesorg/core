@@ -192,11 +192,10 @@ file.data = merge(frontMatter, bundle.data, Bundles.data);
 The `Bundles` global Object is returned by all `Bundles` methods, and is formed as follows.
 
 -   **`success`** \{Boolean\} `true` if all bundles ran successfully.
--   **`initialized`** \{Boolean\} `true` if `Bundles` was initialized.
 -   **`configFile`** \{String|null\} Path to config file, or `null` if a config file was not used.
 -   **`dataFiles`** \{[String]\} Input source paths to the `configFile` and its children data files, if a config file was used.
--   **`watchingDataFiles`** \{Boolean\} `true` if `Bundles` is watching config/data files.
--   **`watcher`** \{Object\} If `watchingDataFiles` is true, this contains the [chokidar](https://github.com/paulmillr/chokidar) watcher.
+-   **`watchingData`** \{Boolean\} `true` if `Bundles` is watching config/data files.
+-   **`watcher`** \{Object\} If `watchingData` is true, this contains the [chokidar](https://github.com/paulmillr/chokidar) watcher.
 -   **`options`** \{Object\} Original [global configuration options](#configuration-options).
 -   **`on`** \{Object\} _[{}]_ Dictionary of hooks (callbacks) which allow you to tie into Bundles. [See Bundles hooks](#configuring-hooks).
 -   **`data`** \{Object\} Original [global data](#configuring-data).
@@ -207,8 +206,10 @@ The `Bundles` global Object is returned by all `Bundles` methods, and is formed 
 `Bundles.bundles` is an Array of individual bundle Objects. Each bundle contains the following combination of original user configuration and internally created data properties.
 
 -   **`id`** \{String\} The bundle's ID. If this was not configured by the user it will default to the bundle's index (from the order all bundles were run).
--   **`input`** {[String]} Array of source file paths, resolved from the original user configuration. Meaning, if a glob or directory was originally provided, it will have been resolved to individual file paths.
--   **`output`** \{[Object]\} Array of [output files](#compiled-output-file-objects), containing compiled source input.
+-   **`input`** {Map} Map which contains each user-configured input source path as the key, and resolved source paths as its value.
+-   **`output`** \{Map\} Map of [output files](#compiled-output-file-objects), containing compiled source input. The key for each file is its source path.
+-   **`changed`** \{Map\} Map of [output files](#compiled-output-file-objects) that have been _changed_ or modified since last bundle. The key for each file is its source path.
+-   **`removed`** \{Map\} Map of [output files](#compiled-output-file-objects) that have been _removed_ since last bundle. The key for each file is its source path.
 -   **`bundlers`** {[Object]} Objects Array of [configured bundlers](#configuring-individual-bundles) which compiled the source input.
 -   **`options`** {Object} Original user-configured [global options](#configuration-options), merged with `bundle.options`.
 -   **`data`** {Object} User-configured [global data](#configuring-data), merged with `bundle.data`, merged with `file.data` (front matter).
@@ -268,9 +269,8 @@ Here's a simple bundler which appends a new line at the end of each file:
 
 ```js
 module.exports = (bundle, bundler) => {
-    bundle.output = bundle.output.map((file) => {
+    bundle.output.forEach((file) => {
         file.content += '\n';
-        return file;
     });
     // Always return the bundle.
     return bundle;
@@ -284,9 +284,8 @@ const fs = require('fs');
 module.exports = (bundle = {}, bundler = {}) => {
     // Return a promise...
     return new Promise((resolve) => {
-        bundle.output = bundle.output.map((file) => {
+        bundle.output.forEach((file) => {
             file.content += '\n';
-            return file;
         });
         // In a Promise, always resolve to the bundle Object.
         return resolve(bundle);
@@ -298,6 +297,14 @@ module.exports = (bundle = {}, bundler = {}) => {
 
 1. A `bundler` must return a Function -- synchronous or asynchronous -- which returns the `bundle` Object. As illustrated above, the `bundle` and `bundler` Objects are passed to this Function. [See how these Objects are configured](#configuring-bundles).
 
-2. To access and modify content and data intended for output, iterate through `bundle.output`, which contains [output file Objects](#compiled-output-file-objects). Make sure to become familiar with these file Objects. [See example above](#authoring-a-bundler).
+2. Become familiar with [file Objects](#compiled-output-file-objects). These contain all the data you typically need to modify. A bundler typically will iterate through the files they wish to modify and _always returns the `bundle`_.
 
-3. You typically won't need to modify anything except the `file` Objects contained in `bundle.output`. The entire `bundle` and its properties are provided for convenience, but should generally be considered read-only.
+3. The purpose of most bundlers are typically to 1) select the files they wish to modify, and 2) modify them according to its goals. Bundles provides the following Map "sets" of files which can be iterated over:
+
+    - `bundle.output`: Contains all files.
+    - `bundle.changed`: Only files that have changed since last compile.
+    - `bundle.removed`: Only files that were removed since alst compile.
+
+4. Each file set above is a [JavaScript Map](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Map), so you can iterate over them with [`Map.forEach()` method](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Map/forEach), or lookup and interact with specific files with [`Map.get()`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Map/get), [`Map.set()`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Map/set), or any of the other useful [Map methods](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Map).
+
+5. When iterating over files, _it is strongly recommended to iterate over `bundle.changed`, not `bundle.output`._ This will give you better performance as it takes advantage of Bundles' incremental bundle feature to only rebundle files that have changed.

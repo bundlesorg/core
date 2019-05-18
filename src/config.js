@@ -8,24 +8,11 @@ import log from 'loglevel'
 import path from 'path'
 import cosmiconfig from 'cosmiconfig'
 import merge from '@brikcss/merge'
-import _ from './utilities.js'
+import _ from './utilities'
 
 // -------------------------------------------------------------------------------------------------
 // Exports and helper functions.
 //
-
-const defaultOptions = {
-  run: true,
-  cwd: process.cwd(),
-  watch: false,
-  watchFiles: [],
-  loglevel: 'info',
-  glob: {
-    dot: true
-  },
-  frontMatter: {},
-  chokidar: {}
-}
 
 /**
  * Parse bundles configuration.
@@ -35,18 +22,18 @@ const defaultOptions = {
  */
 function parseConfig (config = '') {
   // Make sure config is a properly formed global config object.
-  config = normalizeConfig(config)
+  config = _normalizeConfig(config)
 
   // Make sure all global props exist and return the config.
   if (!_.isObject(config.options)) config.options = {}
+  if (config.options.cwd === undefined) config.options.cwd = process.cwd()
   if (!_.isObject(config.data) && typeof config.data !== 'function') config.data = {}
   if (!_.isObject(config.on)) config.on = {}
-  config.options = merge([{}, defaultOptions, config.options], { arrayStrategy: 'overwrite' })
 
   // Get config file children data files if a config file exists.
   if (config.configFile) {
     const configFilepath = path.resolve(config.configFile)
-    config.dataFiles = [configFilepath].concat(_.getChildrenModules(configFilepath))
+    config.dataFiles = _.getChildrenModules(configFilepath)
     log.info(`Using config file: ${path.relative(config.options.cwd, config.configFile)}`)
   }
 
@@ -64,17 +51,17 @@ function parseConfig (config = '') {
  *     a single array, or an object dictionary.
  * @return {Object}  Global config object.
  */
-function normalizeConfig (config) {
+function _normalizeConfig (config) {
   // If config is a String, resolve it as a config file.
-  if (typeof config === 'string' || config === undefined) config = resolveConfigFile(config)
+  if (typeof config === 'string' || config === undefined) config = _resolveConfigFile(config)
   // Ensure config is an Object with the bundles property.
   if (!_.isObject(config)) config = { bundles: config }
   // If the bundles property exists, ensure it's an Array and return the config.
   if (config.hasOwnProperty('bundles')) {
     // If config.bundles is a String, resolve it.
     if (typeof config.bundles === 'string' || config.bundles === undefined) {
-      const configFile = resolveConfigFile(config.bundles)
-      config = merge([{}, resolveConfigFile(config.bundles), config, { bundles: configFile.bundles }], { arrayStrategy: 'overwrite' })
+      const configFile = _resolveConfigFile(config.bundles)
+      config = merge([{}, _resolveConfigFile(config.bundles), config, { bundles: configFile.bundles }], { arrayStrategy: 'overwrite' })
     }
     if (!(config.bundles instanceof Array)) config.bundles = [config.bundles]
   // Convert a single bundle object to a bundles Array.
@@ -99,7 +86,7 @@ function normalizeConfig (config) {
  * @param  {String}  cwd  Current working directory.
  * @return {Object|undefined|Error}  Configuration Object, undefined, or Error.
  */
-function resolveConfigFile (filepath = '', cwd) {
+function _resolveConfigFile (filepath = '', cwd) {
   const config = cosmiconfig('bundles')
   let run
   let configFile
@@ -121,7 +108,7 @@ function resolveConfigFile (filepath = '', cwd) {
   }
 
   // Properly form the configFile.
-  configFile.config = normalizeConfig(configFile.config)
+  configFile.config = _normalizeConfig(configFile.config)
   configFile.config.configFile = configFile.filepath
   if (!_.isObject(configFile.config.options)) configFile.config.options = {}
   configFile.config.options.run = run
@@ -134,4 +121,4 @@ function resolveConfigFile (filepath = '', cwd) {
 // Exports.
 //
 
-export { parseConfig, defaultOptions }
+export { parseConfig }

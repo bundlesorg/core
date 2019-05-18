@@ -1,6 +1,7 @@
 /* eslint-env jest */
 import Bundles from '../src/bundles.js'
-import { isValidOptions, isValidResult, isValidBundle } from './validations.js'
+import path from 'path'
+import './jest-extended.js'
 
 afterEach(() => {
   Bundles.reset()
@@ -8,23 +9,21 @@ afterEach(() => {
 
 describe('Bundles global configurations', () => {
   test('auto detect config file', () => {
-    expect.assertions(6)
+    expect.assertions(1)
     const config = Bundles.create()
-    isValidResult(config)
-    matchesRootConfig(config)
+    expect(config).toMatchConfig({ configFile: path.join(process.cwd(), '.bundlesrc.js'), data: {} })
   })
 
   test('create from config file Object', () => {
-    expect.assertions(6)
+    expect.assertions(1)
     const config = Bundles.create('./.bundlesrc.js')
-    isValidResult(config)
-    matchesRootConfig(config)
+    expect(config).toMatchConfig({ configFile: path.join(process.cwd(), '.bundlesrc.js'), data: {} })
   })
 
   test('create from config file Object dictionary', () => {
     expect.assertions(3)
     const config = Bundles.create('test/fixtures/configs/.bundlesrc-dictionary.js')
-    isValidResult(config)
+    expect(config).toMatchConfig()
     const expectedConfigs = [{
       id: 'bundle1',
       input: ['test/fixtures/simple.md']
@@ -32,13 +31,13 @@ describe('Bundles global configurations', () => {
       id: 'bundle2',
       input: ['test/fixtures/simple.md']
     }]
-    config.bundles.forEach((bundle, i) => isValidBundle(bundle, expectedConfigs[i]))
+    config.bundles.forEach((bundle, i) => expect(bundle).toMatchBundle(expectedConfigs[i]))
   })
 
   test('create from config file Array', () => {
     expect.assertions(3)
     const config = Bundles.create('test/fixtures/configs/.bundlesrc-array.js')
-    isValidResult(config)
+    expect(config).toMatchConfig()
     const expectedConfigs = [{
       id: 'bundle1',
       input: ['test/fixtures/simple.md']
@@ -46,7 +45,7 @@ describe('Bundles global configurations', () => {
       id: 'bundle2',
       input: ['test/fixtures/simple.md']
     }]
-    config.bundles.forEach((bundle, i) => isValidBundle(bundle, expectedConfigs[i]))
+    config.bundles.forEach((bundle, i) => expect(bundle).toMatchBundle(expectedConfigs[i]))
   })
 
   test('throw error if config file doesn\'t exist', () => {
@@ -65,8 +64,8 @@ describe('Bundles global configurations', () => {
         testing: 123
       }
     })
-    isValidResult(config, { options: { loglevel: 'error' }, data: { testing: 123 } })
-    config.bundles.forEach(bundle => isValidBundle(bundle, { id: '0' }))
+    expect(config).toMatchConfig({ options: { loglevel: 'error' }, data: { testing: 123 } })
+    config.bundles.forEach(bundle => expect(bundle).toMatchBundle({ id: '0' }))
   })
 
   test('create config from a bundle Object', () => {
@@ -82,10 +81,10 @@ describe('Bundles global configurations', () => {
         regional: true
       }
     })
-    isValidResult(config)
-    expect(config.options.watch).toBe(false)
+    expect(config).toMatchConfig()
+    expect(config.options.watch).toBeFalsy()
     expect(config.data).toEqual({})
-    config.bundles.forEach(bundle => isValidBundle(bundle, { id: 'bundle' }))
+    config.bundles.forEach(bundle => expect(bundle).toMatchBundle({ id: 'bundle' }))
   })
 
   test('create config from a bundles Object dictionary', () => {
@@ -109,8 +108,8 @@ describe('Bundles global configurations', () => {
         }
       }
     })
-    isValidResult(config)
-    expect(config.options.watch).toBe(false)
+    expect(config).toMatchConfig()
+    expect(config.options.watch).toBeFalsy()
     expect(config.data).toEqual({})
     const expectedConfigs = [{
       id: 'one',
@@ -131,7 +130,7 @@ describe('Bundles global configurations', () => {
         one: false
       }
     }]
-    config.bundles.forEach((bundle, i) => isValidBundle(bundle, expectedConfigs[i]))
+    config.bundles.forEach((bundle, i) => expect(bundle).toMatchBundle(expectedConfigs[i]))
   })
 
   test('create config from a bundles Array', () => {
@@ -154,8 +153,8 @@ describe('Bundles global configurations', () => {
         one: false
       }
     }])
-    isValidResult(config)
-    expect(config.options.watch).toBe(false)
+    expect(config).toMatchConfig()
+    expect(config.options.watch).toBeFalsy()
     expect(config.data).toEqual({})
     const expectedConfigs = [{
       id: 'one',
@@ -176,14 +175,10 @@ describe('Bundles global configurations', () => {
         one: false
       }
     }]
-    config.bundles.forEach((bundle, i) => isValidBundle(bundle, expectedConfigs[i]))
+    config.bundles.forEach((bundle, i) => expect(bundle).toMatchBundle(expectedConfigs[i]))
   })
-})
 
-function matchesRootConfig (config) {
-  isValidResult(config)
-  expect(config.bundles.length).toBe(1)
-  isValidBundle(config.bundles[0])
-  isValidOptions(config.options)
-  expect(config.data).toEqual({})
-}
+  test.skip('correctly parse watchFiles and dataFiles to Bundles and bundles', () => {})
+
+  test.skip('auto add nested data files to bundler', () => {})
+})

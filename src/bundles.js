@@ -5,10 +5,9 @@
 //
 
 import log from 'loglevel'
-import merge from '@brikcss/merge'
 import path from 'path'
-import chokidar from 'chokidar'
-import _ from './utilities.js'
+import _ from './utilities'
+import { createWatcher } from './watch.js'
 import { parseConfig } from './config.js'
 import Bundle from './bundle.js'
 
@@ -19,13 +18,13 @@ import Bundle from './bundle.js'
 // Bundles API.
 const Bundles = {
   // Run everything start to finish.
-  run: runAll,
+  run: _runAll,
   // Create/parse/normalize bundles from global configuration.
-  create: createConfig,
+  create: _createConfig,
   // Run one or more bundles.
-  bundle: bundle,
+  bundle: _bundle,
   // Reset Bundles to a fresh state.
-  reset: resetBundles
+  reset: _resetBundles
 }
 
 // Initialize Bundles.
@@ -44,10 +43,11 @@ Bundles.reset()
  * @param {Date} options.start  Task's runtime start Date.
  * @return {Object}  Bundles result.
  */
-function runAll (config = '', { isRebundle = false, start } = {}) {
+function _runAll (config = '', { isRebundle = false, start } = {}) {
   start = start || new Date()
   log.setDefaultLevel('info')
   log.info(`${isRebundle ? 'Refreshing' : 'Running'} Bundles...`)
+  Bundles.userConfig = config
   return Bundles.create(config).bundle({ start })
 }
 
@@ -59,7 +59,7 @@ function runAll (config = '', { isRebundle = false, start } = {}) {
  * @param {Date} ?start  Date/time the task started. Used to calculate the time it took to run.
  * @return {Promise}  Promise that resturns Bundles.
  */
-function bundle ({ bundleIds, start }) {
+function _bundle ({ bundleIds, start }) {
   start = start || new Date()
   bundleIds = _.convertStringToArray(bundleIds)
   // @todo Change `bundles` to be list of bundle IDs to run, and have this method filter bundles to
@@ -84,32 +84,27 @@ function bundle ({ bundleIds, start }) {
  *
  * @return  {Object}  Bundles.
  */
-function watchDataFiles () {
-  if (Bundles.watchingDataFiles || !Bundles.dataFiles || !Bundles.dataFiles.length) return
-  Bundles.watchingDataFiles = 'ready'
-  Bundles.watcher = chokidar.watch(Bundles.dataFiles, Bundles.options.chokidar)
-  Bundles.watcher.on('change', (filepath) => {
-    const start = new Date()
-    // Don't run if watcher is not ready yet.
-    if (Bundles.watchingDataFiles !== true) return
-    // Log the change.
-    log.info(`Data file changed: ${path.relative(process.cwd(), filepath)}`)
-    // Remove cache of config data files.
-    Bundles.dataFiles.forEach(filepath => {
-      delete require.cache[path.resolve(filepath)]
-    })
-    // Refresh the data.
-    return Bundles.run({
-      bundles: Bundles.configFile,
-      options: Bundles.options,
-      data: Bundles.data
-    }, { isRebundle: true, start })
-  })
-    .on('error', log.error)
-    .on('ready', () => {
-      Bundles.watchingDataFiles = true
+function _watchDataFiles () {
+  if (Bundles.watchingData || !Bundles.dataFiles || !Bundles.dataFiles.length) return
+  Bundles.watchingData = 'ready'
+  Bundles.watcher = createWatcher(Bundles.dataFiles, Bundles.options.chokidar, {
+    change: (filepath) => {
+      const start = new Date()
+      // Don't run if watcher is not ready yet.
+      if (Bundles.watchingData !== true) return
+      // Log the change.
+      log.info(`Data file changed: ${path.relative(process.cwd(), filepath)}`)
+      // Remove cache of config data files.
+      _.flushRequireCache(Bundles.dataFiles)
+      // Refresh the data.
+      return Bundles.run(Bundles.userConfig, { isRebundle: true, start })
+    },
+    error: (error) => log.error(error),
+    ready: () => {
+      Bundles.watchingData = true
       log.info('Watching config/data files...')
-    })
+    }
+  })
   return Bundles
 }
 
@@ -119,10 +114,15 @@ function watchDataFiles () {
  * @param   {Array}  [bundles=[]]  Array of bundle Objects to initialize.
  * @return  {Array}  Initialized Array of bundles.
  */
-function createBundles (bundles = []) {
-  // Create a new Bundle Object from each user configured bundle.
-  const newBundles = []
-  bundles.forEach((bundle, index) => {
+function _createBundles (bundles = []) {
+  // Close existing watchers.
+  if (Bundles.bundles.length) {
+    Bundles.bundles.forEach(bundle => {
+      if (bundle.watcher) bundle.watcher.close()
+    })
+  }
+  // Create new bundles from user configured bundles.
+  return bundles.map((bundle, index) => {
     // The bundle must be an Object.
     if (!_.isObject(bundle)) {
       log.error(`Bundle [${index}] was not added, it must be an Object.`)
@@ -133,39 +133,14 @@ function createBundles (bundles = []) {
     // Create the new bundle. If the bundle already exists in Bundles, refresh it and mark only the
     // files that have changed from their original source.
     bundle = new Bundle(bundle, Bundles)
-    let existingBundle = Bundles.bundles.find(b => b.id === bundle.id)
-    bundle.changed = []
-    if (existingBundle) {
-      bundle = merge([bundle, {
-        valid: existingBundle.valid,
-        success: existingBundle.success,
-        watching: existingBundle.watching,
-        watcher: existingBundle.watcher
-      }], { arrayStrategy: 'overwrite' })
-      bundle.output.forEach((file, i) => {
-        const originalFile = existingBundle.outputMap[file.source.path]
-        if (!originalFile ||
-          originalFile.source.content !== file.source.content ||
-          !Object.is(originalFile.data, file.data)
-        ) {
-          bundle.changed.push(bundle.output[i])
-        }
-      })
-    // If no bundle existed previously, mark all files as changed.
-    } else {
-      bundle.output.forEach((b, i) => bundle.changed.push(bundle.output[i]))
-    }
+    // Mark all files as changed.
+    bundle.output.forEach(file => bundle.changed.set(file.source.path, file))
     // Cache config file and its children data files.
     bundle.configFile = Bundles.configFile
-    if (Bundles.dataFiles) {
-      bundle.dataFiles = Bundles.dataFiles
-      bundle.watchDataFiles = watchDataFiles
-    }
-    // Add bundle to Bundles.
-    newBundles.push(bundle)
+    if (Bundles.dataFiles) bundle.watchDataFiles = _watchDataFiles
+    // Return the bundle.
+    return bundle
   })
-
-  return newBundles
 }
 
 /**
@@ -173,7 +148,7 @@ function createBundles (bundles = []) {
  *
  * @param  {Object}  [config]  User configuration.
  */
-function createConfig (config) {
+function _createConfig (config) {
   config = parseConfig(config)
 
   // Set default log level (may get overridden by other log.setLevel() method).
@@ -189,7 +164,7 @@ function createConfig (config) {
   Bundles.options = config.options || {}
   Bundles.on = config.on || {}
   Bundles.data = config.data || {}
-  Bundles.bundles = createBundles(config.bundles)
+  Bundles.bundles = _createBundles(config.bundles)
 
   // Return Bundles.
   return Bundles
@@ -198,11 +173,11 @@ function createConfig (config) {
 /**
  * Reset Bundles props to their initial state.
  */
-function resetBundles () {
-  Bundles.initialized = true
+function _resetBundles () {
+  Bundles.userConfig = {}
   Bundles.success = false
   Bundles.watching = false
-  Bundles.watchingDataFiles = false
+  Bundles.watchingData = false
   Bundles.watcher = null
   Bundles.configFile = ''
   Bundles.dataFiles = []

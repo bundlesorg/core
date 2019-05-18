@@ -7,16 +7,23 @@
 import log from 'loglevel'
 import merge from '@brikcss/merge'
 import path from 'path'
-import chokidar from 'chokidar'
+import micromatch from 'micromatch'
 import Bundler from './bundler.js'
 import File from './file.js'
-import { defaultOptions } from './config.js'
-import _ from './utilities.js'
+import { watchBundle } from './watch.js'
+import _ from './utilities'
 
 // Cache cwd.
 const cwd = process.cwd()
 // Cache next id for bundles that don't have an ID already.
 let nextId = 0
+// fileTypeMap is used by the logger to log file types to the console.
+const fileTypeMap = {
+  input: 'File',
+  dependencies: 'Dependency',
+  bundlers: 'Bundler',
+  data: 'Data file'
+}
 
 // -------------------------------------------------------------------------------------------------
 // Bundler constructor and prototype.
@@ -38,6 +45,25 @@ Bundle.prototype = {
    */
   shouldWatch () {
     return _.idExistsInValue(this.options.watch, this.id)
+  },
+  /**
+   * Check the source file type of a given filepath.
+   *
+   * @param {String} filepath  Source file path.
+   * @return {String}  Type: 'input', 'dependencies', or 'data'.
+   */
+  getFileType (filepath) {
+    return ['input', 'dependencies', 'bundlers'].find(type => {
+      return micromatch.isMatch(filepath, this.sources[type])
+    })
+  },
+  /**
+   * Get all original input source paths.
+   *
+   * @return {Array}  All original source paths, including from input, data, and dependency sources.
+   */
+  getSources () {
+    return ['input', 'dependencies', 'bundlers'].reduce((result, key) => result.concat(this.sources[key]), [])
   },
 
   /**
@@ -78,8 +104,8 @@ Bundle.prototype = {
     }, Promise.resolve(bundle)).then(bundle => {
       bundle.success = bundle.bundlers.every(bundler => bundler.success)
       if (bundle.success) {
-        bundle.changed = []
-        bundle.removed = []
+        bundle.changed.clear()
+        bundle.removed.clear()
       }
       log.info(`${bundle.watching ? 'Rebundled' : 'Bundled'} [${bundle.id}] (${_.getTimeDiff(start)})`)
       return bundle.watch()
@@ -91,38 +117,16 @@ Bundle.prototype = {
     })
   },
 
-  update (filepaths, rebundle = true) {
-    const bundle = this
-    const start = new Date()
-    // Ensure filepaths is an array.
-    if (_.trueType(filepaths) !== 'array') filepaths = [filepaths]
-    // Iterate through filepaths and add to bundle.output, bundle.outputMap, and bundle.changed.
-    filepaths.forEach(filepath => {
-      // Log the file change.
-      log.info(`File changed: ${path.relative(cwd, filepath)}`)
-      // Read in changed source file, if it exists in the output dictionary.
-      if (bundle.outputMap[filepath]) {
-        bundle.outputMap[filepath] = Object.assign(bundle.outputMap[filepath], new File(filepath, bundle))
-        bundle.changed.push(bundle.outputMap[filepath])
-      // If changed file exists in watchFiles, mark all output files as changed.
-      } else if (bundle.options.watchFiles.length && bundle.options.watchFiles.includes(filepath)) {
-        bundle.output.forEach((f, i) => {
-          bundle.output[i] = new File(bundle.output[i].source.path, bundle)
-          bundle.changed.push(bundle.output[i])
-        })
-      // If it's a bundler file, refresh the bundler.
-      } else if (bundle.modules.length && bundle.modules.includes(filepath)) {
-        let bundlerIndex = bundle.bundlers.findIndex((b, i) => b.id === filepath)
-        delete require.cache[filepath]
-        bundle.bundlers[bundlerIndex].run = _.requireModule(filepath)
-        bundle.output.forEach(file => {
-          file.content = file.source.content
-        })
-        bundle.changed = bundle.output
-      }
-    })
-    // Run bundle.
-    return rebundle ? bundle.run({ start }) : Promise.resolve(bundle)
+  /**
+   * Mark given file path(s) as changed so they can be incrementally rebundled.
+   *
+   * @param {Array} filepaths  File path(s) to mark as changed.
+   * @param {String} [options.type]  File type. Will be auto-detected if not provided.
+   * @param {Boolean} [options.rebundle=true]  Whether to trigger a rebundle.
+   * @return {Promise}  Promise to return bundle.
+   */
+  update (filepaths, { type, rebundle = true } = {}) {
+    return _prepForRebundle.call(this, filepaths, { event: 'update', type, rebundle })
   },
 
   /**
@@ -132,21 +136,8 @@ Bundle.prototype = {
    * @param {boolean} [rebundle=true]  Whether to rebundle after removing.
    * @return {Promise}  Promise to return the bundle.
    */
-  addFile (filepaths, rebundle = true) {
-    const bundle = this
-    const start = new Date()
-    // Ensure filepaths is an array.
-    if (_.trueType(filepaths) !== 'array') filepaths = [filepaths]
-    // Iterate through filepaths and add to bundle.output, bundle.outputMap, and bundle.changed.
-    filepaths.forEach(filepath => {
-      log.info(`File added: ${path.relative(cwd, filepath)}`)
-      bundle.output.push(new File(filepath, bundle))
-      const lastOutput = bundle.output[bundle.output.length - 1]
-      bundle.outputMap[filepath] = lastOutput
-      bundle.changed.push(lastOutput)
-    })
-    // Rebundle and/or return the bundle.
-    return rebundle ? bundle.run({ start }) : Promise.resolve(bundle)
+  add (filepaths, { type, rebundle = true } = {}) {
+    return _prepForRebundle.call(this, filepaths, { event: 'add', type, rebundle })
   },
 
   /**
@@ -156,21 +147,8 @@ Bundle.prototype = {
    * @param {Boolean} [rebundle=true]  Whether to rebundle after removing.
    * @return {Promise}  Promise to return the bundle.
    */
-  removeFile (filepaths, rebundle = true) {
-    const bundle = this
-    const start = new Date()
-    // Ensure filepaths is an array.
-    if (_.trueType(filepaths) !== 'array') filepaths = [filepaths]
-    // Remove filepaths from bundle.output, bundle.outputMap, and bundle.changed.
-    filepaths.forEach(filepath => {
-      log.info(`File removed: ${path.relative(cwd, filepath)}`)
-      bundle.removed.push(Object.assign({}, bundle.outputMap[filepath]))
-      delete bundle.outputMap[filepath]
-      bundle.output.splice(bundle.output.findIndex(f => f.source.path === filepath), 1)
-      bundle.input.splice(bundle.input.findIndex(f => f === filepath), 1)
-    })
-    // Rebundle and/or return the bundle.
-    return rebundle ? bundle.run({ start }) : Promise.resolve(bundle)
+  remove (filepaths, { type, rebundle = true } = {}) {
+    return _prepForRebundle.call(this, filepaths, { event: 'remove', type, rebundle })
   },
 
   /**
@@ -178,41 +156,7 @@ Bundle.prototype = {
    *
    * @return {Promise}  Promise for compiled bundle.
    */
-  watch () {
-    const bundle = this
-    if (bundle.watching) return Promise.resolve(bundle)
-
-    // Return a promise.
-    return new Promise((resolve, reject) => {
-      // Only watch if it's configured to be watched.
-      if (!bundle.shouldWatch()) {
-        bundle.watching = false
-        return resolve(bundle)
-      }
-
-      // Create watcher.
-      bundle.watcher = chokidar.watch(bundle.watchInput.concat(bundle.options.watchFiles || [], bundle.modules), bundle.options.chokidar)
-
-      // Add watcher events.
-      bundle.watcher
-        .on('add', (filepath) => bundle.watching && bundle.addFile(filepath))
-        .on('change', (filepath) => bundle.watching && bundle.update(filepath))
-        .on('unlink', (filepath) => bundle.watching && bundle.removeFile(filepath))
-        .on('error', reject)
-        .on('ready', () => {
-          // Flag bundle and notify user.
-          bundle.watching = true
-          // Call the on.watching() hook.
-          if (typeof bundle.on.watching === 'function') bundle.on.watching(bundle)
-          return resolve(bundle)
-        })
-
-      // Watch config/data files.
-      if (bundle.dataFiles) {
-        bundle.watchDataFiles()
-      }
-    })
-  }
+  watch: watchBundle
 }
 
 /**
@@ -222,36 +166,67 @@ Bundle.prototype = {
  * @param {Object} globals  Bundles global configuration.
  */
 function Bundle ({ id, input, bundlers, options, data, on } = {}, globals = {}) {
+  const bundle = this
   //
-  // Set defaults and normalize.
+  // Set defaults.
   // -------------
-  // Set internal props.
-  this.valid = false
-  this.success = false
-  this.watching = false
-  this.watcher = null
-  this.changed = []
-  this.removed = []
-  this.output = []
-  this.watchInput = []
-  this.modules = []
 
-  // Set user configurable props.
-  this.id = ((typeof id === 'number' || typeof id === 'string') ? id : nextId++).toString()
-  this.input = input || []
-  this.bundlers = bundlers || []
+  // Ensure bundle has a unique id.
+  bundle.id = typeof id === 'number'
+    ? id.toString()
+    : typeof id === 'string'
+      ? id
+      : (nextId++).toString()
 
-  // Merge options.
-  this.options = merge([{}, defaultOptions, globals.options || {}, options || {}], { arrayStrategy: 'overwrite' })
+  // Source input file paths.
+  // @todo Convert to a Map: [original input, expanded paths or object(s)].
+  bundle.input = new Map()
 
-  // Merge on hooks.
-  this.on = Object.assign(on || {}, globals.on || {})
+  // Bundler plugins.
+  // @todo Convert to a Map: [module path, bundler object]
+  bundle.bundlers = bundlers || []
+
+  // Flags to track bundle's state.
+  bundle.valid = false
+  bundle.success = false
+  bundle.watching = false
+
+  // Changes files to track which files have changed since last run.
+  bundle.changed = new Map()
+  // Files which have been deleted since last run.
+  bundle.removed = new Map()
+  // File objects which contain all data necessary for outputting file data.
+  bundle.output = new Map()
+  // Create initial sources object, which contains all source files to be watched.
+  bundle.sources = {}
+
+  // Create space for a file watcher.
+  bundle.watcher = null
+
+  // Merge default options with global options.
+  bundle.options = merge([
+    {
+      run: true,
+      cwd: process.cwd(),
+      watch: false,
+      watchFiles: [],
+      loglevel: 'info',
+      glob: {},
+      frontMatter: {},
+      chokidar: {}
+    },
+    globals.options || {},
+    options || {}],
+  { arrayStrategy: 'overwrite' }
+  )
+  // Use options.cwd on options.glob.cwd.
+  if (bundle.options && bundle.options.glob && !bundle.options.glob.cwd) bundle.options.glob.cwd = bundle.options.cwd
 
   // Merge global data with bundle data.
   if (!data || (!_.isObject(data) && typeof data !== 'function')) data = {}
   if (!globals.data || (!_.isObject(globals.data) && typeof globals.data !== 'function')) globals.data = {}
   if (typeof data === 'function' || typeof globals.data === 'function') {
-    this.data = (file) => {
+    bundle.data = (file) => {
       return merge([
         {},
         typeof globals.data === 'function' ? globals.data(file) : globals.data,
@@ -259,36 +234,61 @@ function Bundle ({ id, input, bundlers, options, data, on } = {}, globals = {}) 
       ], { arrayStrategy: 'overwrite' })
     }
   } else {
-    this.data = merge([{}, globals.data, data], { arrayStrategy: 'overwrite' })
+    bundle.data = merge([{}, globals.data, data], { arrayStrategy: 'overwrite' })
   }
 
-  // Convert input to an Array.
-  if (typeof this.input === 'string' || _.isObject(this.input)) {
-    this.input = [this.input]
-  }
-  if (_.trueType(this.input) !== 'array') return
-  // Cache the original input sources as an Array so the watcher can watch globs.
-  this.watchInput = this.input.reduce((result, item) => {
-    const type = _.trueType(item)
-    if (type === 'object' && item.path) result.push(item.path)
-    if (type === 'string' || type === 'array') result.push(item)
-    return result
-  }, [])
-  // Use options.cwd on options.glob.cwd.
-  if (this.options && this.options.glob && !this.options.glob.cwd) this.options.glob.cwd = this.options.cwd
+  // Merge the 'on' callback hooks.
+  bundle.on = Object.assign(on || {}, globals.on || {})
 
   //
   // Resolve input and output files.
   // -------------------------------
-  const files = resolveFiles(this.input, this)
-  this.input = files.input
-  this.output = files.output
-  this.outputMap = files.outputMap
+
+  // Convert input to an Array.
+  if (typeof input === 'string' || _.isObject(input)) input = [input]
+  if (_.trueType(input) !== 'array') {
+    this.input = input
+    return
+  }
+
+  // Create input and output Maps from original source input.
+  input.forEach((source, i) => {
+    const files = File.create(source, bundle)
+    const sourcePaths = []
+    files.forEach(file => {
+      const filepath = path.relative(cwd, path.join(bundle.options.cwd, file.source.path))
+      sourcePaths.push(filepath)
+      bundle.output.set(filepath, file)
+    })
+    bundle.input.set(source, sourcePaths)
+  })
 
   //
   // Create bundlers.
   // ----------------
-  this.bundlers = this.bundlers.map(bundler => new Bundler(bundler, this))
+  bundle.bundlers = bundle.bundlers.map(bundler => new Bundler(bundler))
+
+  //
+  // Cache original sources.
+  // -----------------------
+  // Cache config file and its children data files.
+  bundle.configFile = globals.configFile || ''
+  // Source file paths, grouped by their use. This is used for watching files and, when a file
+  // changes, checking what type of source file it is.
+  bundle.sources = {
+    // input: source input. Triggers incremental rebundle.
+    input: Array.from(bundle.input.keys()),
+    // dependencies: Triggers full rebundle. Comes from options.watchFiles.
+    dependencies: bundle.options.watchFiles || [],
+    // bundlers: Bundler modules and their children. Triggers an update to the changed bundler and a
+    // bundle.run(). Comes from bundler.dataFiles.
+    bundlers: bundle.bundlers.reduce((result, bundler) => result.concat(bundler.dataFiles || []), []),
+    // data: Triggers Bundles refresh -> bundle.run() for this bundle only. Comes from
+    // options.dataFiles.
+    // data: bundle.options.dataFiles || [],
+    // globalData: Triggers Bundles -> bundle.run() for ALL bundles. Reference to Bundles.dataFiles.
+    globalData: globals.dataFiles || []
+  }
 
   //
   // Check if bundle is valid.
@@ -297,12 +297,12 @@ function Bundle ({ id, input, bundlers, options, data, on } = {}, globals = {}) 
   //  - output is a non-empty [].
   //  - bundlers is a non-empty [] with at least one valid bundler.
   // -------------------------
-  this.valid = this.input instanceof Array &&
-    this.output instanceof Array &&
-    this.output.length > 0 &&
-    this.bundlers instanceof Array &&
-    this.bundlers.length > 0 &&
-    this.bundlers.some(bundler => bundler.valid)
+  bundle.valid = _.trueType(bundle.input) === 'map' &&
+    _.trueType(bundle.output) === 'map' &&
+    bundle.output.size > 0 &&
+    bundle.bundlers instanceof Array &&
+    bundle.bundlers.length > 0 &&
+    bundle.bundlers.some(bundler => bundler.valid)
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -310,31 +310,81 @@ function Bundle ({ id, input, bundlers, options, data, on } = {}, globals = {}) 
 //
 
 /**
- * Resolve Files from an input Array.
- * @param  {Array}  input  Array of paths or Objects to resolve.
- * @param  {Object}  bundle  Bundle configuration.
- * @return {Object}       Result = { input, output, outputMap }
+ * Update changed files based on given filepaths.
+ *
+ * @param {String|String[]} [filepaths]  File paths to mark. Defaults to bundle.output.
+ * @param {Boolean} [clear=false]  Whether to clear bundle.changed.
+ * @param {Object} [bundle]=this  Bundle file paths belong to.
+ * @return {Map}  bundle.changed files.
  */
-function resolveFiles (input = [], bundle = {}) {
-  // Create initial result Object.
-  let result = {
-    input: [],
-    output: [],
-    outputMap: {}
-  }
-  // Make sure input is an Array.
-  if (!(input instanceof Array)) input = [input]
-  // Iterate through the input files and resolve all input/output files.
-  return input.reduce((result, srcFile, i) => {
-    const files = File.create(srcFile, bundle)
-    files.forEach((file, i) => {
-      const src = path.relative(cwd, path.join(bundle.options.cwd, file.source.path))
-      result.output.push(file)
-      result.input.push(src)
-      if (!result.outputMap[file.source.path]) result.outputMap[file.source.path] = result.output[i]
-    })
-    return result
-  }, result)
+function _updateChangedFiles (filepaths, clear = false, bundle = this) {
+  if (clear) bundle.changed.clear()
+  if (!filepaths) filepaths = Array.from(bundle.output.keys())
+  else if (typeof filepaths === 'string') filepaths = [filepaths]
+  filepaths.forEach((filepath, id) => {
+    bundle.output.set(filepath, new File(filepath, bundle))
+    if (!bundle.changed.has(filepath)) bundle.changed.set(filepath, bundle.output.get(filepath))
+  })
+  return bundle.changed
+}
+
+/**
+ * Given one or more file paths, determine the source type of each file prepare the bundle to be rebundled.
+ *
+ * @param {Array} filepaths  File paths that have changed.
+ * @param {String} [options.event='change']  Type of event: 'change', 'add', or 'remove'.
+ * @param {String} [options.type]  Explicity set the source type for all files.
+ * @param {Object} [options.bundle]  The bundle. Defaults to this.
+ * @param {boolean} [options.rebundle=true]  Whether to trigger a rebundle.
+ * @return {Promise}  Promise to return the bundle.
+ */
+function _prepForRebundle (filepaths, { event = 'change', type, bundle, rebundle = true }) {
+  const start = new Date()
+  let markAll = false
+  bundle = bundle || this
+
+  // Ensure filepaths is an array.
+  if (_.trueType(filepaths) !== 'array') filepaths = [filepaths]
+
+  // Iterate through filepaths...
+  filepaths.forEach(filepath => {
+    // Get file type.
+    if (!type) type = bundle.getFileType(filepath)
+
+    // Log the file change.
+    log.info(`${fileTypeMap[type] || fileTypeMap.input} ${event}${event === 'add' ? 'ed' : 'd'}: ${path.relative(cwd, filepath)}`)
+
+    // Mark changed files for rebundle...
+    // For input source files, do an incremental rebundle.
+    if (type === 'input') {
+      if (event === 'add') {
+        bundle.output.set(filepath, new File(filepath, bundle))
+      } else if (event === 'remove') {
+        bundle.removed.set(filepath, bundle.output.get(filepath))
+        bundle.output.delete(filepath, new File(filepath, bundle))
+        bundle.changed.delete(filepath, bundle.output.get(filepath))
+      }
+      if (event !== 'remove') _updateChangedFiles.call(bundle, filepath)
+    // For source dependencies, do a full rebundle.
+    } else if (type === 'dependencies' || !type) {
+      markAll = true
+    // For bundler files, refresh the config and do a full rebundle.
+    } else if (type === 'bundlers' && !bundle.sources.globalData.includes(filepath)) {
+      let bundler = bundle.bundlers.find(b => b.id === filepath)
+      if (bundler) {
+        markAll = true
+        _.flushRequireCache(bundler.dataFiles)
+        bundler.run = require(filepath)
+        bundler.testing = 123
+      }
+    }
+  })
+
+  // Mark files.
+  if (markAll) _updateChangedFiles.call(bundle)
+
+  // Run bundle.
+  return rebundle ? bundle.run({ start }) : Promise.resolve(bundle)
 }
 
 // -------------------------------------------------------------------------------------------------

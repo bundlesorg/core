@@ -1,5 +1,5 @@
 /* eslint-env jest */
-import _ from '../src/utilities.js'
+import _ from '../src/utilities'
 
 describe('Utility functions', () => {
   test('is a true Object', () => {

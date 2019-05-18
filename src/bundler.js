@@ -15,14 +15,11 @@ import _ from './utilities'
  * Bundler constructor.
  * @param {Object} bundler
  */
-function Bundler (bundler = {}, bundle = {}) {
-  bundle.modules = bundle.modules || []
-
+function Bundler (bundler = {}) {
   // Ensure bundler is an Object.
   if (!_.isObject(bundler)) this.run = bundler
-
   // Merge bundler down to this instance.
-  Object.keys(bundler).forEach(key => { this[key] = bundler[key] })
+  else Object.keys(bundler).forEach(key => { this[key] = bundler[key] })
 
   // Normalize bundler.
   this.valid = true
@@ -35,15 +32,18 @@ function Bundler (bundler = {}, bundle = {}) {
   }
 
   if (typeof this.run === 'string') {
-    // If bundler.run is a relative path, resolve the path.
-    if (this.run.indexOf('./') === 0 || this.run.indexOf('../') === 0) {
-      const bundlerModule = path.resolve(this.run)
-      this.id = this.run = bundlerModule
-      if (!bundle.modules.includes(bundlerModule)) bundle.modules.push(bundlerModule)
-    }
+    this.id = this.run[0] === '.' ? path.resolve(this.run) : _.requireModulePath(this.run)
 
-    // Require module.
-    this.run = _.requireModule(this.run, 'Error creating bundler...') || this.run
+    // Resolve and require the module.
+    this.run = _.requireModule(
+      this.run[0] === '.'
+        ? path.resolve(this.run)
+        : this.run,
+      'Error creating bundler...'
+    ) || this.run
+
+    // Cache data file paths so we can watch them.
+    this.dataFiles = _.getChildrenModules(this.id)
   }
 
   // At this point if bundler.run is not a function, skip it.

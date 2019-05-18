@@ -27,11 +27,11 @@ File.prototype.mergeData = function () {
 /**
  * File constructor.
  *
- * @param {String|Object} input   Path or content { path, content } for eventual output files.
+ * @param {String|Object} file  Path or object ({ path, content }) for eventual output files.
  * @param {Object} config  Bundle configuration.
  * @return {Object} File = {}
  */
-function File (input = '', bundle = {}) {
+function File (file = '', bundle = {}, input) {
   const options = bundle.options || {}
   options.cwd = options.cwd || process.cwd()
 
@@ -39,27 +39,27 @@ function File (input = '', bundle = {}) {
   this.bundle = bundle
 
   // Read file with gray-matter and set source props.
-  const inputIsObject = _.isObject(input)
-  let inputPath = inputIsObject ? input.path : input
-  inputPath = path.isAbsolute(inputPath) ? inputPath : path.join(options.cwd, inputPath)
-  const content = inputIsObject ? input.content : fs.readFileSync(inputPath)
+  const fileIsObject = _.isObject(file)
+  let filepath = fileIsObject ? file.path : file
+  filepath = path.isAbsolute(filepath) ? filepath : path.join(options.cwd, filepath)
+  const content = fileIsObject ? file.content : fs.readFileSync(filepath)
   const encoding = getEncoding(content)
 
   // Create file.source, patterned after gray-matter's return object
   // (https://github.com/jonschlinkert/gray-matter#returned-object).
   this.source = {}
   if (encoding === 'utf8') {
-    this.source = inputIsObject
-      ? matter(input.content, options.frontMatter)
-      : matter.read(inputPath, options)
+    this.source = fileIsObject
+      ? matter(file.content, options.frontMatter)
+      : matter.read(filepath, options)
   } else {
     this.source = {
       content,
-      data: {},
-      orig: content
+      data: {}
     }
   }
-  this.source.path = path.normalize(inputIsObject ? input.path : input)
+  this.source.input = input || file
+  this.source.path = path.normalize(fileIsObject ? file.path : file)
   this.source.cwd = options.cwd
 
   // Front matter may cause a `\n` character at the beginning of source.content. Remove it in
@@ -84,25 +84,25 @@ function File (input = '', bundle = {}) {
  * @param  {Object} bundle  Bundle configuration.
  * @return {Array}  Array of File Objects.
  */
-function createFiles (input = '', bundle = {}) {
-  const files = []
-  // Make sure options is an object.
-  if (!_.isObject(bundle.options)) bundle.options = {}
+function _createFiles (input = '', bundle = {}) {
+  let filepaths
   // Ensure input is a String or Object with path and content props.
   const isObject = _.isObject(input)
-  if ((typeof input !== 'string' && !isObject) || (isObject && (!input.path || !input.content))) return files
-
+  if ((typeof input !== 'string' && !isObject) || (isObject && (!input.path || !input.content))) {
+    return [{
+      source: {
+        input
+      }
+    }]
+  }
   // If input is an Object, we already have the content.
   if (isObject) return [new File(input, bundle)]
-
   // If input is a git repo, clone it and use local repo as input.
-  if (isGitRepo(input)) input = resolveGitRepo(input)
-
+  if (_isGitRepo(input)) filepaths = _resolveGitRepo(input)
   // Resolve input paths with globby.
-  input = globby.sync(input, bundle.options.glob)
-
+  filepaths = globby.sync(filepaths || input, bundle.options && bundle.options.glob ? bundle.options.glob : {})
   // Create and return Array of Files.
-  return input.map(filepath => new File(filepath, bundle))
+  return filepaths.map(filepath => new File(filepath, bundle, input))
 }
 
 /**
@@ -111,7 +111,7 @@ function createFiles (input = '', bundle = {}) {
  * @param  {String}  input Input String.
  * @return {Boolean}  True if string matches syntax of a git repo.
  */
-function isGitRepo (input = '') {
+function _isGitRepo (input = '') {
   if (typeof input !== 'string') return false
   return input.indexOf('http://') === 0 ||
     input.indexOf('https://') === 0 ||
@@ -125,7 +125,8 @@ function isGitRepo (input = '') {
  * @param  {String} input   Input / source path.
  * @return {String}         The local path of the cloned repo.
  */
-function resolveGitRepo (input = '') {
+function _resolveGitRepo (input = '') {
+  const GH_TOKEN = process.env.GITHUB_TOKEN || process.env.GH_TOKEN
   // Use https for http URLs.
   // if (input.indexOf('http://') === 0) input = 'https://' + input.slice(7)
   // Convert github shorthand to proper URL syntax.
@@ -137,6 +138,10 @@ function resolveGitRepo (input = '') {
       const len = input[0].length
       input = `https://${input[0]}@github.com/${input.join('@').slice(len)}`
     }
+  }
+  // Add github token if it's github.
+  if (GH_TOKEN && (input.indexOf('http://github.com') === 0 || input.indexOf('https://github.com'))) {
+    input = `https://${GH_TOKEN + '@'}${input.replace('http://', '').replace('https://', '')}`
   }
 
   // Cache local path as: .repos/<user-id>/<repo-name>
@@ -159,6 +164,6 @@ function resolveGitRepo (input = '') {
 // Exports.
 //
 
-File.create = createFiles
+File.create = _createFiles
 
 export default File

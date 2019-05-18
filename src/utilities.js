@@ -13,6 +13,18 @@ function isObject (value) {
 }
 
 /**
+ * Ensure give file(s) are an iterable Array or Map.
+ *
+ * @param {Array} files  File paths or objects to make iterable.
+ * @return {Array|Map}  Array
+ */
+function ensureFileIterability (files) {
+  if (typeof files === 'string') files = [files]
+  if (trueType(files) === 'object') files = new Map([[files.id, files]])
+  return files
+}
+
+/**
  * Return true type of value.
  *
  * @param {any} value  The value to check.
@@ -80,6 +92,7 @@ function poll (fn, timeout, interval) {
  *
  * @param  {Sring}  filepath  Module filepath.
  * @param  {Sring}  errorMessage  Error message in case of error.
+ * @return {any}  Module.
  */
 function requireModule (filepath, { errorMessage, logToConsole = true } = {}) {
   let result
@@ -92,20 +105,51 @@ function requireModule (filepath, { errorMessage, logToConsole = true } = {}) {
 }
 
 /**
+ * Get a module's require path without failing if the module doesn't exist.
+ *
+ * @param  {Sring}  filepath  Module filepath.
+ * @param  {Sring}  errorMessage  Error message in case of error.
+ */
+function requireModulePath (filepath, { errorMessage, logToConsole = true } = {}) {
+  let result
+  try {
+    result = require.resolve(filepath)
+  } catch (error) {
+    if (logToConsole) log.error((errorMessage || `Module not found ${filepath}:`), error)
+  }
+  return result
+}
+
+/**
  * Get children modules of a given node module.
  *
  * @param   {String}  modulePath  Module path to get children for.
  * @return  {Array}  Children modules.
  */
 function getChildrenModules (modulePath) {
+  if (trueType(modulePath) !== 'string') return []
   modulePath = path.resolve(modulePath)
-  if (!require.cache[modulePath] || !require.cache[modulePath].children.length) return []
+  if (!require.cache[modulePath] || !require.cache[modulePath].children.length) return [modulePath]
   return require.cache[modulePath].children.reduce((result, child) => {
     if (child.id.includes('node_modules') || result.includes(child.id)) return result
     result.push(child.id)
-    if (child.children.length) result = result.concat(getChildrenModules(child.id))
+    if (child.children.length) result = [...new Set(result.concat(getChildrenModules(child.id)))]
     return result
-  }, [])
+  }, modulePath.includes('node_modules') ? [] : [modulePath])
+}
+
+/**
+ * Delete require cache for given filepaths.
+ *
+ * @param {String|String[]} filepaths  Filepaths to refresh the require cache on.
+ */
+function flushRequireCache (filepaths) {
+  if (typeof filepaths === 'string') filepaths = [filepaths]
+  filepaths.forEach(parent => {
+    getChildrenModules(parent).forEach(child => {
+      delete require.cache[path.resolve(child)]
+    })
+  })
 }
 
 /**
@@ -129,10 +173,13 @@ function getTimeDiff (start, { end, suffix = 's' } = {}) {
 export default {
   isObject,
   trueType,
+  ensureFileIterability,
   convertStringToArray,
   idExistsInValue,
   poll,
   requireModule,
+  requireModulePath,
   getChildrenModules,
+  flushRequireCache,
   getTimeDiff
 }

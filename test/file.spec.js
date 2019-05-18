@@ -1,7 +1,7 @@
 /* eslint-env jest */
 import fs from 'fs-extra'
+import './jest-extended.js'
 import File from '../src/file.js'
-import { isValidFile } from './validations.js'
 const bundlesSource = fs.readFileSync('src/bundles.js', 'utf8')
 
 afterEach(() => {
@@ -12,7 +12,7 @@ afterEach(() => {
 describe('File constructor', () => {
   test('create text file from input', () => {
     expect.assertions(1)
-    isValidFile(new File('src/bundles.js'), {
+    expect(new File('src/bundles.js')).toMatchFile({
       source: {
         data: {},
         content: bundlesSource,

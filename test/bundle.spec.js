@@ -1,32 +1,31 @@
 /* eslint-env jest */
 import fs from 'fs-extra'
 import Bundle from '../src/bundle.js'
-import { isValidBundle } from './validations.js'
+import './jest-extended.js'
 
 describe('Bundle constructor', () => {
   test('bundle with invalid input is invalid', () => {
-    expect.assertions(2)
+    expect.assertions(3)
     const bundle = new Bundle()
-    isValidBundle(bundle, { id: '0', valid: false, input: [], output: [] })
+    // Validations doesn't allow undefined value, so as a workaround, assert that input is undefined
+    // first, then validate the rest of the bundle.
+    expect(bundle.input).toBeUndefined()
+    bundle.input = new Map()
+    expect(bundle).toMatchBundle({ id: '0', valid: false })
     const bundle2 = new Bundle({ id: 1, input: 123 })
-    isValidBundle(bundle2, { id: '1', valid: false, input: 123, output: [] })
+    expect(bundle2).toMatchBundle({ id: '1', valid: false, input: 123 }, { input: 'number' })
   })
 
   test('bundle with no bundlers is invalid', () => {
     expect.assertions(1)
     const bundle = new Bundle({ id: 'bundlers', input: 'src' })
-    isValidBundle(bundle, { id: 'bundlers', valid: false, bundlers: [] })
+    expect(bundle).toMatchBundle({ id: 'bundlers', valid: false, bundlers: [] })
   })
 
   test('bundle with input and bundles is valid and outputs correctly', () => {
     expect.assertions(1)
     const bundle = new Bundle({ id: 'source', input: 'src/bundles.js', bundlers: [(bundle) => bundle] })
-    isValidBundle(bundle, { id: 'source',
-      valid: true,
-      input: ['src/bundles.js'],
-      output: [
-        { source: { path: 'src/bundles.js', content: expect.any(String), data: expect.any(Object), isEmpty: expect.any(Boolean), cwd: expect.any(String) }, content: expect.any(String), encoding: 'utf8', isBuffer: false, data: expect.any(Object) }
-      ] })
+    expect(bundle).toMatchBundle({ valid: true, input: ['src/bundles.js'], output: [{ source: { path: 'src/bundles.js', data: expect.any(Object), isEmpty: expect.any(Boolean), cwd: expect.any(String) }, encoding: 'utf8', isBuffer: false, data: expect.any(Object) }] })
   })
 
   test('create bundle with mixture of input objects and paths', () => {
@@ -47,7 +46,7 @@ describe('Bundle constructor', () => {
       ],
       bundlers: [(bundle) => bundle]
     })
-    isValidBundle(bundle, {
+    expect(bundle).toMatchBundle({
       id: 'mix',
       input: [
         'src/bundles.js',
@@ -70,11 +69,11 @@ describe('Bundle methods', () => {
     expect.assertions(1)
     const bundle = new Bundle({ id: 'invalid' })
     return bundle.run().then(result => {
-      isValidBundle(result, {
+      expect(result).toMatchBundle({
         id: 'invalid',
         valid: false,
         success: false
-      })
+      }, { input: 'undefined' })
     })
   })
 
@@ -82,7 +81,7 @@ describe('Bundle methods', () => {
     expect.assertions(1)
     const bundle = new Bundle({ id: 'no-run', input: ['src/bundles.js'], bundlers: [bundle => bundle], options: { run: 'none' } })
     return bundle.run().then(result => {
-      isValidBundle(result, {
+      expect(result).toMatchBundle({
         id: 'no-run',
         valid: true,
         success: 'skipped',
@@ -101,7 +100,7 @@ describe('Bundle methods', () => {
       bundlers: [bundle => bundle]
     })
     return bundle.run().then(result => {
-      isValidBundle(result, {
+      expect(result).toMatchBundle({
         id: 'run',
         valid: true,
         success: true
@@ -118,7 +117,7 @@ describe('Bundle methods', () => {
       options: { watch: 'none' }
     })
     return bundle.run(true).then(result => {
-      isValidBundle(result, {
+      expect(result).toMatchBundle({
         id: 'no-watch',
         valid: true,
         success: true,
@@ -141,14 +140,14 @@ describe('Bundle methods', () => {
     })
     // Mock a watching bundle.
     bundle.watching = true
-    bundle.watcher = 'fixed'
+    bundle.watcher = {}
     return bundle.run(true).then(result => {
-      isValidBundle(result, {
+      expect(result).toMatchBundle({
         id: 'watch',
         valid: true,
         success: true,
         watching: true,
-        watcher: 'fixed',
+        watcher: {},
         options: {
           watch: 'watch'
         }
@@ -166,7 +165,7 @@ describe('Bundle methods', () => {
       on: {
         watching (bundle) {
           bundle.watcher.close()
-          isValidBundle(bundle, {
+          expect(bundle).toMatchBundle({
             id: 'watch',
             valid: true,
             success: true,
