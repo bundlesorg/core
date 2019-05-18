@@ -65,14 +65,25 @@ Bundle.prototype = {
   getSources () {
     return ['input', 'dependencies', 'bundlers'].reduce((result, key) => result.concat(this.sources[key]), [])
   },
+  /**
+   * Create bundlers from given bundlers configuration.
+   *
+   * @param {Object|[Object]} bundlers  Bundlers configuration.
+   * @return {Array}  Array of resolved bundlers.
+   */
+  resolveBundlers (bundlers) {
+    if (_.trueType(bundlers) !== 'array') bundlers = [bundlers]
+    return bundlers.map(bundler => new Bundler(bundler))
+  },
 
   /**
    * Run a single bundle.
    *
    * @return {Object}  Compiled bundle.
    */
-  run ({ start = new Date() } = {}) {
+  run ({ start = new Date(), bundlers } = {}) {
     const bundle = this
+    bundlers = _.trueType(bundlers) === 'array' ? bundlers : bundle.bundlers
 
     // Do not run it if it's invalid.
     if (!bundle.valid) {
@@ -87,7 +98,7 @@ Bundle.prototype = {
     }
 
     // Reduce bundlers to a series of promises that run in order.
-    return bundle.bundlers.reduce((promise, bundler, i) => {
+    return bundlers.reduce((promise, bundler, i) => {
       return promise.then((bundle) => {
         return bundler.run(bundle, bundler)
       // If bundler completes successfully, mark as success.
@@ -102,7 +113,7 @@ Bundle.prototype = {
       })
     // A bundle is marked as successful if all bundlers successfully complete.
     }, Promise.resolve(bundle)).then(bundle => {
-      bundle.success = bundle.bundlers.every(bundler => bundler.success)
+      bundle.success = bundlers.every(bundler => bundler.success)
       if (bundle.success) {
         bundle.changed.clear()
         bundle.removed.clear()
