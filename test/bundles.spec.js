@@ -306,7 +306,7 @@ describe('Bundles end to end', () => {
     })
   })
 
-  test.skip('run complex example', () => {
+  test('run complex example', () => {
     expect.assertions(22)
     return Bundles.run({
       bundles: {
@@ -365,7 +365,7 @@ describe('Bundles end to end', () => {
     })
   })
 
-  test.skip('run complex example with different data', () => {
+  test('run complex example with different data', () => {
     expect.assertions(36)
     return Bundles.run({
       options: { cwd: 'test/fixtures/examples/complex' },
