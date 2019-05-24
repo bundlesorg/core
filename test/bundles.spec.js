@@ -357,8 +357,8 @@ describe('Bundles end to end', () => {
         expect(bundle).toMatchBundle({ success: true })
         bundle.output.forEach((file) => {
           expect(file).toMatchFile()
-          const expected = fs.readFileSync(path.join('test/fixtures/expected/node', file.to || file.source.path), 'utf8')
-          const actual = fs.readFileSync(path.join('.temp', file.to || file.source.path), 'utf8')
+          const expected = fs.readFileSync(path.join('test/fixtures/expected/node', file.to.replace('.temp/', '')), 'utf8')
+          const actual = fs.readFileSync(file.to, 'utf8')
           expect(actual.trim()).toBe(expected.trim())
         })
       })
@@ -416,8 +416,8 @@ describe('Bundles end to end', () => {
         expect(bundle).toMatchBundle({ success: true })
         bundle.output.forEach((file) => {
           expect(file).toMatchFile()
-          const expected = fs.readFileSync(path.join('test/fixtures/expected/browser', file.to || file.source.path), 'utf8')
-          const actual = fs.readFileSync(path.join('.temp', file.to || file.source.path), 'utf8')
+          const expected = fs.readFileSync(path.join('test/fixtures/expected/browser', file.to.replace('.temp/', '')), 'utf8')
+          const actual = fs.readFileSync(file.to, 'utf8')
           expect(actual.trim()).toBe(expected.trim())
         })
       })
