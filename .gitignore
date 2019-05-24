@@ -1,4 +1,4 @@
-#! .gitignore | @author brikcss <https://github.com/brikcss> | @reference https://git-scm.com/docs/gitignore #
+#! .gitignore | @author brikcss (https://github.com/brikcss) | @reference (https://git-scm.com/docs/gitignore) #
 
 # Node
 node_modules
@@ -11,9 +11,14 @@ node_modules
 /coverage
 
 # Build files
-/browser/
+/dist
+/build
+/bin
+/umd
+/esm
+/cjs
 /.temp
 /.shots/current
-/lib
-/module
-/bin
+/package
+*.zip
+*.tgz

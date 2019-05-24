@@ -4,85 +4,23 @@
 // Imports and setup.
 //
 
-import babel from 'rollup-plugin-babel'
-import { terser as uglify } from 'rollup-plugin-terser'
+import configGen from '@brikcss/rollup-config-generator'
 import pkg from './package.json'
-
-// Flags.
-const isProd = process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'test'
-
-// Set base options.
-const base = {
-  input: 'src/bundles.js',
-  cliInput: 'src/cli.js',
-  external: [...Object.keys(pkg.dependencies), 'path', 'fs-extra', 'child_process'],
-  watch: {
-    chokidar: true,
-    include: 'src/**',
-    exclude: 'node_modules/**',
-    clearScreen: true
-  }
-}
-
-// -------------------------------------------------------------------------------------------------
-// Config variations.
-//
-
-let configs = [{
-  input: base.input,
-  external: base.external,
-  output: [
-    // CommonJS for Node.
-    {
-      file: pkg.main,
-      format: 'cjs'
-    }, {
-      file: pkg.module,
-      format: 'esm'
-    }
-  ],
-  plugins: [
-    babel({
-      babelrc: false,
-      exclude: ['node_modules/**'],
-      presets: [['@babel/preset-env', {
-        targets: {
-          node: '8'
-        }
-      }]]
-    }),
-    isProd && uglify()
-  ],
-  watch: base.watch
-},
-{
-  input: base.cliInput,
-  external: base.external.concat(['../lib/bundles.js']),
-  output: [
-    // CommonJS for Node.
-    {
-      file: pkg.bin.bundle,
-      format: 'cjs',
-      banner: '#!/usr/bin/env node'
-    }
-  ],
-  plugins: [
-    babel({
-      babelrc: false,
-      exclude: ['node_modules/**'],
-      presets: [['@babel/preset-env', {
-        targets: {
-          node: '8'
-        }
-      }]]
-    }),
-    isProd && uglify()
-  ],
-  watch: base.watch
-}]
+const external = [...Object.keys(pkg.dependencies), 'path', 'fs-extra', 'child_process']
 
 // -------------------------------------------------------------------------------------------------
 // Exports.
 //
 
-export default configs
+export default configGen.create([
+  {
+    type: 'node',
+    input: 'src/bundles.js',
+    external
+  }, {
+    type: 'cli',
+    input: 'src/cli.js',
+    external,
+    output: { file: 'bin/bundles.js' }
+  }
+])

@@ -8,7 +8,7 @@ import minimist from 'minimist'
 import merge from '@brikcss/merge'
 import path from 'path'
 import _ from './utilities'
-import Bundles from '../lib/bundles.js'
+import Bundles from './bundles.js'
 
 const cli = minimist(process.argv.slice(2), {
   boolean: true
