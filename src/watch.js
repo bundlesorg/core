@@ -59,7 +59,7 @@ function watchBundle (bundle) {
     bundle.watcher = createWatcher(bundle.getSources(), bundle.options.chokidar, {
       add: (filepath) => bundle.watching && bundle.add(filepath),
       change: (filepath) => bundle.watching && bundle.update(filepath),
-      unlink: (filepath) => bundle.watching && bundle.unlink(filepath),
+      unlink: (filepath) => bundle.watching && bundle.remove(filepath),
       error: (error) => reject(error),
       ready: () => {
         // Flag bundle and notify user.
