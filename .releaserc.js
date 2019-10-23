@@ -26,7 +26,11 @@ module.exports = {
         release: 'major'
       },
       {
-        scope: 'minor',
+        type: 'major',
+        release: 'major'
+      },
+      {
+        type: 'minor',
         release: 'minor'
       },
       {
