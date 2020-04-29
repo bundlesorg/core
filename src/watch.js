@@ -4,6 +4,7 @@
 
 import chokidar from 'chokidar'
 import log from 'loglevel'
+import path from 'path'
 
 const defaultEvents = {
   add: null,
@@ -32,6 +33,7 @@ function createWatcher (source, options = {}, events = {}) {
   // Create the watcher and add the events.
   const watcher = chokidar.watch(source, options)
   Object.keys(events).forEach(event => {
+    // eslint-disable-next-line no-prototype-builtins
     if (!defaultEvents.hasOwnProperty(event)) return
     if (typeof events[event] === 'function') watcher.on(event, events[event])
   })
@@ -57,9 +59,9 @@ function watchBundle (bundle) {
 
     // Create watcher.
     bundle.watcher = createWatcher(bundle.getSources(), bundle.options.chokidar, {
-      add: (filepath) => bundle.watching && bundle.add(filepath),
-      change: (filepath) => bundle.watching && bundle.update(filepath),
-      unlink: (filepath) => bundle.watching && bundle.remove(filepath),
+      add: (filepath) => bundle.watching && bundle.add(path.relative(bundle.options.cwd, filepath)),
+      change: (filepath) => bundle.watching && bundle.update(path.relative(bundle.options.cwd, filepath)),
+      unlink: (filepath) => bundle.watching && bundle.remove(path.relative(bundle.options.cwd, filepath)),
       error: (error) => reject(error),
       ready: () => {
         // Flag bundle and notify user.
