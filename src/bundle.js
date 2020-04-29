@@ -230,8 +230,9 @@ function Bundle ({ id, input, bundlers, options, data, on } = {}, globals = {}) 
     options || {}],
   { arrayStrategy: 'overwrite' }
   )
-  // Use options.cwd on options.glob.cwd.
+  // Apply options.cwd to other places it is used.
   if (bundle.options && bundle.options.glob && !bundle.options.glob.cwd) bundle.options.glob.cwd = bundle.options.cwd
+  if (bundle.options && bundle.options.chokidar && !bundle.options.chokidar.cwd) bundle.options.chokidar.cwd = bundle.options.cwd
 
   // Merge global data with bundle data.
   if (!data || (!_.isObject(data) && typeof data !== 'function')) data = {}
@@ -381,7 +382,7 @@ function _prepForRebundle (filepaths, { event = 'change', type, bundle, rebundle
       markAll = true
     // For bundler files, refresh the config and do a full rebundle.
     } else if (type === 'bundlers' && !bundle.sources.globalData.includes(filepath)) {
-      let bundler = bundle.bundlers.find(b => b.id === filepath)
+      const bundler = bundle.bundlers.find(b => b.id === filepath)
       if (bundler) {
         markAll = true
         _.flushRequireCache(bundler.dataFiles)
