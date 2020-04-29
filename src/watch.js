@@ -4,7 +4,6 @@
 
 import chokidar from 'chokidar'
 import log from 'loglevel'
-import path from 'path'
 
 const defaultEvents = {
   add: null,
@@ -59,9 +58,9 @@ function watchBundle (bundle) {
 
     // Create watcher.
     bundle.watcher = createWatcher(bundle.getSources(), bundle.options.chokidar, {
-      add: (filepath) => bundle.watching && bundle.add(path.relative(bundle.options.cwd, filepath)),
-      change: (filepath) => bundle.watching && bundle.update(path.relative(bundle.options.cwd, filepath)),
-      unlink: (filepath) => bundle.watching && bundle.remove(path.relative(bundle.options.cwd, filepath)),
+      add: (filepath) => bundle.watching && bundle.add(filepath),
+      change: (filepath) => bundle.watching && bundle.update(filepath),
+      unlink: (filepath) => bundle.watching && bundle.remove(filepath),
       error: (error) => reject(error),
       ready: () => {
         // Flag bundle and notify user.
