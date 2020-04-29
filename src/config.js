@@ -6,7 +6,7 @@
 
 import log from 'loglevel'
 import path from 'path'
-import cosmiconfig from 'cosmiconfig'
+import { cosmiconfigSync } from 'cosmiconfig'
 import merge from '@brikcss/merge'
 import _ from './utilities'
 
@@ -57,6 +57,7 @@ function _normalizeConfig (config) {
   // Ensure config is an Object with the bundles property.
   if (!_.isObject(config)) config = { bundles: config }
   // If the bundles property exists, ensure it's an Array and return the config.
+  // eslint-disable-next-line no-prototype-builtins
   if (config.hasOwnProperty('bundles')) {
     // If config.bundles is a String, resolve it.
     if (typeof config.bundles === 'string' || config.bundles === undefined) {
@@ -87,7 +88,7 @@ function _normalizeConfig (config) {
  * @return {Object|undefined|Error}  Configuration Object, undefined, or Error.
  */
 function _resolveConfigFile (filepath = '', cwd) {
-  const config = cosmiconfig('bundles')
+  const config = cosmiconfigSync('bundles')
   let run
   let configFile
   cwd = cwd || process.cwd()
@@ -101,10 +102,10 @@ function _resolveConfigFile (filepath = '', cwd) {
 
   // If there's no filepath, search for a default config file.
   if (!filepath) {
-    configFile = config.searchSync('')
+    configFile = config.search('')
   // If filepath exists, load that specific file.
   } else if (typeof filepath === 'string') {
-    configFile = config.loadSync(filepath)
+    configFile = config.load(filepath)
   }
 
   // Properly form the configFile.
