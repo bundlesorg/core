@@ -334,8 +334,14 @@ function _updateChangedFiles (filepaths, clear = false, bundle = this) {
   if (!filepaths) filepaths = Array.from(bundle.output.keys())
   else if (typeof filepaths === 'string') filepaths = [filepaths]
   filepaths.forEach((filepath, id) => {
-    bundle.output.set(filepath, new File(filepath, bundle))
-    if (!bundle.changed.has(filepath)) bundle.changed.set(filepath, bundle.output.get(filepath))
+    let file
+    if (bundle.output.has(filepath)) {
+      file = bundle.output.get(filepath)
+      file.refresh()
+    } else {
+      file = new File(filepath, bundle)
+    }
+    if (!bundle.changed.has(filepath)) bundle.changed.set(filepath, file)
   })
   return bundle.changed
 }
@@ -373,8 +379,8 @@ function _prepForRebundle (filepaths, { event = 'change', type, bundle, rebundle
         bundle.output.set(filepath, new File(filepath, bundle))
       } else if (event === 'remove') {
         bundle.removed.set(filepath, bundle.output.get(filepath))
-        bundle.output.delete(filepath, new File(filepath, bundle))
-        bundle.changed.delete(filepath, bundle.output.get(filepath))
+        bundle.output.delete(filepath)
+        bundle.changed.delete(filepath)
       }
       if (event !== 'remove') _updateChangedFiles.call(bundle, filepath)
     // For source dependencies, do a full rebundle.

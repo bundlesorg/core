@@ -24,6 +24,20 @@ File.prototype.mergeData = function () {
   ], { arrayStrategy: 'overwrite' })
 }
 
+File.prototype.refresh = function () {
+  if (this.encoding === 'utf8') {
+    const file = matter.read(this.source.input, this.bundle.options)
+    this.content = this.source.content = file.content
+    this.source.data = file.data
+  } else {
+    this.source = {
+      content: fs.readFileSync(this.source.input),
+      data: {}
+    }
+  }
+  this.data = this.mergeData()
+}
+
 /**
  * File constructor.
  *
@@ -58,9 +72,10 @@ function File (file = '', bundle = {}, input) {
       data: {}
     }
   }
-  this.source.input = input || file
   this.source.path = path.normalize(fileIsObject ? file.path : file)
   this.source.cwd = options.cwd
+  this.source.inputSrc = input || file
+  this.source.input = path.join(this.source.cwd, this.source.path)
 
   // Front matter may cause a `\n` character at the beginning of source.content. Remove it in
   // file.content.
