@@ -144,10 +144,13 @@ Bundle.prototype = {
    * Add one or more files to the bundle.
    *
    * @param {String|String[]} filepaths  Files to add.
-   * @param {boolean} [rebundle=true]  Whether to rebundle after removing.
+   * @param {boolean} [rebundle=true]  Whether to rebundle after adding.
    * @return {Promise}  Promise to return the bundle.
    */
   add (filepaths, { type, rebundle = true } = {}) {
+    if (typeof filepaths === 'string') filepaths = [filepaths]
+    filepaths = filepaths.filter(f => !this.output.has(f))
+    if (!filepaths.length) return
     return _prepForRebundle.call(this, filepaths, { event: 'add', type, rebundle })
   },
 
@@ -159,6 +162,9 @@ Bundle.prototype = {
    * @return {Promise}  Promise to return the bundle.
    */
   remove (filepaths, { type, rebundle = true } = {}) {
+    if (typeof filepaths === 'string') filepaths = [filepaths]
+    filepaths = filepaths.filter(f => this.output.has(f))
+    if (!filepaths.length) return
     return _prepForRebundle.call(this, filepaths, { event: 'remove', type, rebundle })
   },
 
