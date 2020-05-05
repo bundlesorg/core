@@ -171,15 +171,15 @@ function getTimeDiff (start, { end, suffix = 's' } = {}) {
 }
 
 export default {
-  isObject,
-  trueType,
-  ensureFileIterability,
   convertStringToArray,
+  ensureFileIterability,
+  flushRequireCache,
+  getChildrenModules,
+  getTimeDiff,
   idExistsInValue,
+  isObject,
   poll,
   requireModule,
   requireModulePath,
-  getChildrenModules,
-  flushRequireCache,
-  getTimeDiff
+  trueType
 }

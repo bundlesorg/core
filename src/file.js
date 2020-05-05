@@ -47,7 +47,7 @@ File.prototype.refresh = function () {
  */
 function File (file = '', bundle = {}, input) {
   const options = bundle.options || {}
-  options.cwd = options.cwd || process.cwd()
+  options.cwd = options.cwd || '.'
 
   // Cache reference to the bundle.
   this.bundle = bundle

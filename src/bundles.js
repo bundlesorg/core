@@ -93,7 +93,7 @@ function _watchDataFiles () {
       // Don't run if watcher is not ready yet.
       if (Bundles.watchingData !== true) return
       // Log the change.
-      log.info(`Data file changed: ${path.relative(process.cwd(), filepath)}`)
+      log.info(`Data file changed: ${path.relative('.', filepath)}`)
       // Remove cache of config data files.
       _.flushRequireCache(Bundles.dataFiles)
       // Refresh the data.
@@ -134,7 +134,7 @@ function _createBundles (bundles = []) {
     // files that have changed from their original source.
     bundle = new Bundle(bundle, Bundles)
     // Mark all files as changed.
-    bundle.output.forEach(file => bundle.changed.set(file.source.path, file))
+    bundle.output.forEach(file => bundle.changed.set(file.source.input, file))
     // Cache config file and its children data files.
     bundle.configFile = Bundles.configFile
     if (Bundles.dataFiles) bundle.watchDataFiles = _watchDataFiles

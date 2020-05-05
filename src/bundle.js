@@ -14,7 +14,7 @@ import { watchBundle } from './watch.js'
 import _ from './utilities'
 
 // Cache cwd.
-const cwd = process.cwd()
+const cwd = '.'
 // Cache next id for bundles that don't have an ID already.
 let nextId = 0
 // fileTypeMap is used by the logger to log file types to the console.
@@ -218,7 +218,7 @@ function Bundle ({ id, input, bundlers, options, data, on } = {}, globals = {}) 
   bundle.options = merge([
     {
       run: true,
-      cwd: process.cwd(),
+      cwd: '.',
       watch: false,
       watchFiles: [],
       loglevel: 'info',
@@ -231,8 +231,8 @@ function Bundle ({ id, input, bundlers, options, data, on } = {}, globals = {}) 
   { arrayStrategy: 'overwrite' }
   )
   // Apply options.cwd to other places it is used.
-  if (bundle.options && bundle.options.glob && !bundle.options.glob.cwd) bundle.options.glob.cwd = bundle.options.cwd
-  if (bundle.options && bundle.options.chokidar && !bundle.options.chokidar.cwd) bundle.options.chokidar.cwd = bundle.options.cwd
+  if (!bundle.options.glob.cwd) bundle.options.glob.cwd = bundle.options.cwd
+  bundle.options.chokidar.cwd = bundle.options.cwd
 
   // Merge global data with bundle data.
   if (!data || (!_.isObject(data) && typeof data !== 'function')) data = {}
@@ -370,13 +370,13 @@ function _prepForRebundle (filepaths, { event = 'change', type, bundle, rebundle
     if (!type) type = bundle.getFileType(filepath)
 
     // Log the file change.
-    log.info(`${fileTypeMap[type] || fileTypeMap.input} ${event}${event === 'add' ? 'ed' : 'd'}: ${path.relative(cwd, filepath)}`)
+    log.info(`${fileTypeMap[type] || fileTypeMap.input} ${event}${event === 'add' ? 'ed' : 'd'}: ${path.relative(bundle.options.cwd, filepath)}`)
 
     // Mark changed files for rebundle...
     // For input source files, do an incremental rebundle.
     if (type === 'input') {
       if (event === 'add') {
-        bundle.output.set(filepath, new File(filepath, bundle))
+        bundle.output.set(filepath, new File(path.relative(bundle.options.chokidar.cwd, filepath), bundle))
       } else if (event === 'remove') {
         bundle.removed.set(filepath, bundle.output.get(filepath))
         bundle.output.delete(filepath)

@@ -26,7 +26,7 @@ function parseConfig (config = '') {
 
   // Make sure all global props exist and return the config.
   if (!_.isObject(config.options)) config.options = {}
-  if (config.options.cwd === undefined) config.options.cwd = process.cwd()
+  if (config.options.cwd === undefined) config.options.cwd = '.'
   if (!_.isObject(config.data) && typeof config.data !== 'function') config.data = {}
   if (!_.isObject(config.on)) config.on = {}
 
@@ -91,7 +91,7 @@ function _resolveConfigFile (filepath = '', cwd) {
   const config = cosmiconfigSync('bundles')
   let run
   let configFile
-  cwd = cwd || process.cwd()
+  cwd = cwd || '.'
 
   // filepath can be separated with a ':' and have a list of bundle IDs to run. Separate bundle IDs from the filepath here.
   if (filepath.indexOf(':') > -1) {
