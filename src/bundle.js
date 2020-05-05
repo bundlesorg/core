@@ -108,7 +108,7 @@ Bundle.prototype = {
       // If bundler errors out, mark as such and log the error.
       }).catch(error => {
         bundler.success = false
-        log.error(`Error on [${bundle.id}|${i}]...\n`, error)
+        log.error(`[${bundle.id}|${i}] Error...\n`, error)
         return bundle
       })
     // A bundle is marked as successful if all bundlers successfully complete.
@@ -118,12 +118,12 @@ Bundle.prototype = {
         bundle.changed.clear()
         bundle.removed.clear()
       }
-      log.info(`${bundle.watching ? 'Rebundled' : 'Bundled'} [${bundle.id}] (${_.getTimeDiff(start)})`)
+      log.info(`[${bundle.id}] ${bundle.watching ? 'Rebundled' : 'Bundled'} in ${_.getTimeDiff(start)}.`)
       return bundle.watch()
     // If a bundle errors out, mark it and log error.
     }).catch(error => {
       bundle.success = false
-      log.error(`Error on [${bundle.id}]...`, error)
+      log.error(`[${bundle.id}] Error...`, error)
       return bundle
     })
   },
@@ -370,7 +370,7 @@ function _prepForRebundle (filepaths, { event = 'change', type, bundle, rebundle
     if (!type) type = bundle.getFileType(filepath)
 
     // Log the file change.
-    log.info(`${fileTypeMap[type] || fileTypeMap.input} ${event}${event === 'add' ? 'ed' : 'd'}: ${path.relative(bundle.options.cwd, filepath)}`)
+    log.info(`[${bundle.id}] ${fileTypeMap[type] || fileTypeMap.input} ${event}${event === 'add' ? 'ed' : 'd'}: ${path.relative(bundle.options.cwd, filepath)}`)
 
     // Mark changed files for rebundle...
     // For input source files, do an incremental rebundle.
