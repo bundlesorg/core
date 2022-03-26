@@ -62,6 +62,6 @@
     "istextorbinary": "^3.3.0",
     "loglevel": "^1.6.8",
     "micromatch": "^4.0.2",
-    "minimist": "^1.2.5"
+    "minimist": "^1.2.6"
   }
 }
